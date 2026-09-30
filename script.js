@@ -165,37 +165,40 @@ function setupDictation() {
     return;
   }
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  let activeButton = null, activeTextarea = null, recognition = null, wantListening = false;
+  let activeButton = null, activeTextarea = null, activeFeedback = null, recognition = null, wantListening = false, session = 0;
 
   function resetButton() {
     if (!activeButton) return;
+    if (activeFeedback && activeFeedback.textContent.startsWith("Listening")) activeFeedback.textContent = "";
     activeButton.classList.remove("is-listening");
     activeButton.setAttribute("aria-pressed", "false");
     activeButton.setAttribute("aria-label", activeButton.dataset.defaultLabel);
     activeButton.querySelector("span").textContent = "Speak";
-    activeButton = activeTextarea = recognition = null;
+    activeButton = activeTextarea = activeFeedback = recognition = null;
     wantListening = false;
   }
   function stopDictation() {
-    wantListening = false;
-    if (recognition) recognition.stop(); else resetButton();
+    const rec = recognition;
+    resetButton();                                   // the button turns off right away
+    if (rec) { try { rec.stop(); } catch (err) {} }  // the last spoken words can still arrive
   }
 
   buttons.forEach(button => {
     button.dataset.defaultLabel = button.getAttribute("aria-label");
     button.addEventListener("click", () => {
       if (activeButton === button) return stopDictation();
-      if (activeButton) stopDictation();
+      if (activeButton) stopDictation();             // another Speak button was on: switch it off first
 
       const textarea = document.getElementById(button.dataset.dictateFor);
       const feedback = textarea.parentElement.querySelector(".dictation-feedback");
+      const mySession = ++session;
       let committed = textarea.value.trim();
       const write = extra => {
         textarea.value = [committed, extra].filter(Boolean).join(" ");
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
       };
 
-      activeButton = button; activeTextarea = textarea; wantListening = true;
+      activeButton = button; activeTextarea = textarea; activeFeedback = feedback; wantListening = true;
       button.classList.add("is-listening");
       button.setAttribute("aria-pressed", "true");
       button.setAttribute("aria-label", "Stop dictation");
@@ -210,6 +213,7 @@ function setupDictation() {
         rec.continuous = !isMobile;
         rec.interimResults = !isMobile;
         rec.onresult = event => {
+          if (mySession !== session && activeTextarea === textarea) return;   // a newer session owns this box
           if (isMobile) {
             let chunk = "";
             for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -234,13 +238,18 @@ function setupDictation() {
           if (wantListening && isMobile && activeTextarea === textarea) {
             try { begin(); return; } catch (err) {}
           }
-          if (feedback.textContent.startsWith("Listening")) feedback.textContent = "";
           resetButton();
         };
         rec.start();
       };
       try { begin(); } catch (err) { resetButton(); }
     });
+  });
+
+  // Clicking any other button (Back, Submit, ...) also switches dictation off
+  document.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (activeButton && b && b !== activeButton && !b.hasAttribute("data-dictate-for")) stopDictation();
   });
 }
 
