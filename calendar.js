@@ -149,6 +149,22 @@
     document.addEventListener("click", e => { if (!e.target.closest(".cal-monday")) hide(); });
     wrap.querySelector("#cal-prev").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); });
     wrap.querySelector("#cal-next").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); });
+
+    /* ---------- "FEEDBACK THIS WEEK" BOX ---------- */
+    // Shows the schools for the next Monday (today, if today is Monday).
+    // From Tuesday on it switches to the following Monday.
+    const box = document.getElementById("feedback-week");
+    if (box) {
+      let up = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((8 - now.getDay()) % 7));
+      if (dn(up) < startN) up = new Date(sy, sm - 1, sd);   // before the rotation starts
+      const u = schools(up);
+      if (u) {
+        box.innerHTML =
+          `<div class="fw-head"><span class="fw-title">Feedback this week</span><span class="fw-date">${fmt(up, { weekday: "short", day: "numeric", month: "short" })}</span></div>` +
+          `<div class="fw-row"><span class="fw-chip fw-chip-6">Year 6</span><span class="fw-schools">${u.y6.join(", ")}</span></div>` +
+          `<div class="fw-row"><span class="fw-chip fw-chip-7">Year 7</span><span class="fw-schools">${u.y7.join(", ")}</span></div>`;
+      }
+    }
     render();
   });
 })();
