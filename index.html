@@ -22,11 +22,11 @@
       .menu-hub,.menu-actions,.menu-right,.menu-extra{order:0}
     }
     @media(max-width:640px){.menu-buttons{grid-template-columns:1fr}}
-    .meet-card{width:100%;display:flex;flex-direction:column;justify-content:space-between;gap:.85rem;padding:1.1rem 1.5rem;color:var(--t-label)}
+    .meet-card{width:100%;display:flex;flex-direction:column;justify-content:space-between;gap:.7rem;padding:1.1rem 1.5rem;color:var(--t-label)}
     .meet-title{margin:0;font-size:22px;font-weight:700;color:var(--t-title)}
     .meet-sub{margin:.2rem 0 0;font-size:14px;line-height:1.5;color:var(--t-intro)}
     .meet-list{list-style:none;margin:0;padding:0;display:grid;gap:.6rem}
-    .meet-row{display:flex;align-items:center;gap:.9rem;padding:.65rem .9rem;border-radius:16px;border:1px solid var(--edge);background:rgba(255,255,255,.07)}
+    .meet-row{display:flex;align-items:center;gap:.9rem;padding:.5rem .9rem;border-radius:16px;border:1px solid var(--edge);background:rgba(255,255,255,.07)}
     .meet-chip{min-width:4.75rem;text-align:center;font-size:14px;font-weight:700;padding:.3rem .8rem;border-radius:999px}
     .meet-chip-6{background:linear-gradient(135deg,#fff37b,#67e8f9);color:#073d67}
     .meet-chip-7{background:linear-gradient(135deg,#1e4f96,#3179b9);color:#effcff}
@@ -53,6 +53,13 @@
     .meet-btn.is-soon{animation:meetGlow 2s ease-in-out infinite}
     @keyframes meetGlow{0%,100%{box-shadow:0 8px 22px rgba(82,217,202,.25)}50%{box-shadow:0 8px 30px rgba(82,217,202,.65),0 0 0 4px rgba(121,235,221,.25)}}
     @media(prefers-reduced-motion:reduce){.meet-dot,.meet-btn.is-soon{animation:none}.meet-btn.is-soon{box-shadow:0 8px 30px rgba(82,217,202,.6)}}
+    .meet-banner{display:flex;flex-direction:column;gap:.1rem;margin-top:.55rem;padding:.5rem .9rem;border-radius:16px;border:1px solid rgba(121,235,221,.5);background:linear-gradient(135deg,rgba(82,217,202,.22),rgba(101,143,241,.28));box-shadow:0 0 22px rgba(82,217,202,.22),inset 0 1px 0 rgba(255,255,255,.18)}
+    .meet-banner-label{display:flex;align-items:center;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9decE5}
+    .meet-banner-main{font-size:18px;font-weight:700;line-height:1.25;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 14px rgba(157,236,229,.45)}
+    .meet-banner.is-live{border-color:rgba(93,240,160,.7);background:linear-gradient(135deg,rgba(93,240,160,.24),rgba(82,217,202,.28));box-shadow:0 0 26px rgba(93,240,160,.32),inset 0 1px 0 rgba(255,255,255,.2)}
+    .meet-banner.is-soon{animation:bannerGlow 2s ease-in-out infinite}
+    @keyframes bannerGlow{0%,100%{box-shadow:0 0 18px rgba(82,217,202,.25),inset 0 1px 0 rgba(255,255,255,.18)}50%{box-shadow:0 0 32px rgba(82,217,202,.65),inset 0 1px 0 rgba(255,255,255,.18)}}
+    @media(prefers-reduced-motion:reduce){.meet-banner.is-soon{animation:none;box-shadow:0 0 30px rgba(82,217,202,.55),inset 0 1px 0 rgba(255,255,255,.18)}}
   </style>
 </head>
 <body style="background: linear-gradient(90deg, rgb(0,0,0), rgb(53,51,205));">
@@ -75,7 +82,10 @@
         <section class="glass-panel meet-card rounded-[28px]" aria-label="Online meetings">
           <div>
             <h2 class="meet-title">Online meetings</h2>
-            <p class="meet-sub">Join on Google Meet at the times below.</p>
+            <div class="meet-banner" id="meet-banner">
+              <span class="meet-banner-label">Next meeting</span>
+              <span class="meet-banner-main">Year 7 · Monday 16:45</span>
+            </div>
           </div>
           <ul class="meet-list">
             <li class="meet-row" data-day="Mon" data-start="16:45" data-end="17:15"><span class="meet-chip meet-chip-7">Year 7</span><span class="meet-day">Monday</span><span class="meet-time">16:45 – 17:15</span></li>
@@ -119,7 +129,8 @@
       const card = document.querySelector(".meet-card");
       if (!card) return;
       const TZ = "Europe/Istanbul";                       // meeting times are read in this time zone
-      const sub = card.querySelector(".meet-sub"), btn = card.querySelector(".meet-btn");
+      const banner = card.querySelector(".meet-banner"), btn = card.querySelector(".meet-btn");
+      const labelEl = banner.querySelector(".meet-banner-label"), mainEl = banner.querySelector(".meet-banner-main");
       const SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       const LONG = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
       const W = 7 * 1440;
@@ -145,16 +156,19 @@
       }
       function describe(now, r) {
         const s = r.slot;
-        if (r.live) return `${s.label} meeting is live now \u00b7 until ${s.endTxt}`;
+        if (r.live) return { live: true, label: "Live now", main: `${s.label} \u00b7 until ${s.endTxt}` };
+        let main;
         if (r.diff <= 180) {
           const h = Math.floor(r.diff / 60), m = r.diff % 60, p = [];
           if (h) p.push(h + " h"); if (m || !h) p.push(m + " min");
-          return `Next: ${s.label} meeting in ${p.join(" ")}`;
+          main = `${s.label} \u00b7 in ${p.join(" ")}`;
+        } else {
+          const nowDay = Math.floor(now / 1440) % 7, ahead = (s.day - nowDay + 7) % 7;
+          if (r.diff < 1440 && ahead === 0) main = `${s.label} \u00b7 today at ${s.startTxt}`;
+          else if (r.diff < 2880 && ahead === 1) main = `${s.label} \u00b7 tomorrow at ${s.startTxt}`;
+          else main = `${s.label} \u00b7 ${LONG[s.day]} ${s.startTxt}`;
         }
-        const nowDay = Math.floor(now / 1440) % 7, ahead = (s.day - nowDay + 7) % 7;
-        if (r.diff < 1440 && ahead === 0) return `Next: ${s.label} meeting today at ${s.startTxt}`;
-        if (r.diff < 2880 && ahead === 1) return `Next: ${s.label} meeting tomorrow at ${s.startTxt}`;
-        return `Next: ${s.label} meeting \u00b7 ${LONG[s.day]} ${s.startTxt}`;
+        return { live: false, label: "Next meeting", main };
       }
       /*compute-end*/
 
@@ -171,13 +185,18 @@
       function update() {
         const now = nowInTZ(), r = compute(now, slots);
         if (!r) return;
-        sub.textContent = "";
-        if (r.live) { const dot = document.createElement("span"); dot.className = "meet-dot"; sub.appendChild(dot); }
-        sub.appendChild(document.createTextNode(describe(now, r)));
+        const d = describe(now, r);
+        labelEl.textContent = "";
+        if (r.live) { const dot = document.createElement("span"); dot.className = "meet-dot"; labelEl.appendChild(dot); }
+        labelEl.appendChild(document.createTextNode(d.label));
+        mainEl.textContent = d.main;
         slots.forEach(s => s.row.classList.remove("is-live", "is-next"));
         if (r.live) r.slot.row.classList.add("is-live");
         else if (r.diff < 1440) r.slot.row.classList.add("is-next");
-        btn.classList.toggle("is-soon", r.live || r.diff <= 15);
+        const soon = r.live || r.diff <= 15;
+        banner.classList.toggle("is-live", r.live);
+        banner.classList.toggle("is-soon", soon);
+        btn.classList.toggle("is-soon", soon);
       }
       update();
       setInterval(update, 30000);
