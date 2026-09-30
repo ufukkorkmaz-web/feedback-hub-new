@@ -60,6 +60,11 @@
     .meet-banner.is-soon{animation:bannerGlow 2s ease-in-out infinite}
     @keyframes bannerGlow{0%,100%{box-shadow:0 0 18px rgba(82,217,202,.25),inset 0 1px 0 rgba(255,255,255,.18)}50%{box-shadow:0 0 32px rgba(82,217,202,.65),inset 0 1px 0 rgba(255,255,255,.18)}}
     @media(prefers-reduced-motion:reduce){.meet-banner.is-soon{animation:none;box-shadow:0 0 30px rgba(82,217,202,.55),inset 0 1px 0 rgba(255,255,255,.18)}}
+    /* Bigger, better-centered logos */
+    .menu-hub img{width:7rem;height:7rem;object-fit:contain;margin-left:auto;margin-right:auto}
+    @media(min-width:640px){
+      .year-header img{width:clamp(8rem,14vw,11.5rem);height:auto;aspect-ratio:1/1;flex:none;align-self:center;margin-right:clamp(0rem,1.6vw,1.5rem)}
+    }
   </style>
 </head>
 <body style="background: linear-gradient(90deg, rgb(0,0,0), rgb(53,51,205));">
