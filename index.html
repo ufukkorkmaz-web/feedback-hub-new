@@ -21,6 +21,21 @@
       .menu-hub,.menu-buttons,.menu-right,.menu-extra{order:0}
     }
     @media(max-width:640px){.menu-buttons{grid-template-columns:1fr}}
+    .meet-card{width:100%;display:flex;flex-direction:column;justify-content:space-between;gap:.85rem;padding:1.1rem 1.5rem;color:var(--t-label)}
+    .meet-title{margin:0;font-size:22px;font-weight:700;color:var(--t-title)}
+    .meet-sub{margin:.2rem 0 0;font-size:14px;line-height:1.5;color:var(--t-intro)}
+    .meet-list{list-style:none;margin:0;padding:0;display:grid;gap:.6rem}
+    .meet-row{display:flex;align-items:center;gap:.9rem;padding:.65rem .9rem;border-radius:16px;border:1px solid var(--edge);background:rgba(255,255,255,.07)}
+    .meet-chip{min-width:4.75rem;text-align:center;font-size:14px;font-weight:700;padding:.3rem .8rem;border-radius:999px}
+    .meet-chip-6{background:linear-gradient(135deg,#fff37b,#67e8f9);color:#073d67}
+    .meet-chip-7{background:linear-gradient(135deg,#1e4f96,#3179b9);color:#effcff}
+    .meet-day{font-size:14px;color:var(--t-help)}
+    .meet-time{margin-left:auto;font-size:18px;font-weight:700;color:var(--t-title);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .meet-btn{display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.85rem 1.25rem;border-radius:18px;background:linear-gradient(135deg,#52d9ca,#658ff1);color:#06214e;font-size:16px;font-weight:700;text-decoration:none;box-shadow:0 8px 22px rgba(82,217,202,.25);transition:transform .15s ease,filter .15s ease}
+    .meet-btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+    .meet-btn:focus-visible{outline:2px solid #ffd54a;outline-offset:3px}
+    .meet-btn svg{width:22px;height:22px;flex:none}
+    @media(prefers-reduced-motion:reduce){.meet-btn{transition:none}.meet-btn:hover{transform:none}}
   </style>
 </head>
 <body style="background: linear-gradient(90deg, rgb(0,0,0), rgb(53,51,205));">
@@ -54,10 +69,20 @@
           </button>
         </section>
       <div id="extra" class="menu-extra">
-        <div class="glass-panel rounded-[28px] px-6 py-5" style="width:100%;">
-          <h2 style="color:var(--t-title);font-size:22px;font-weight:700;">Independent Scroll Area</h2>
-          <p class="mt-2" style="color:var(--t-intro);font-size:15px;line-height:1.5;">School names and Google Meet Link will be inserted.</p>
-        </div>
+        <section class="glass-panel meet-card rounded-[28px]" aria-label="Online meetings">
+          <div>
+            <h2 class="meet-title">Online meetings</h2>
+            <p class="meet-sub">Join on Google Meet at the times below.</p>
+          </div>
+          <ul class="meet-list">
+            <li class="meet-row"><span class="meet-chip meet-chip-7">Year 7</span><span class="meet-day">Monday</span><span class="meet-time">16:45 – 17:15</span></li>
+            <li class="meet-row"><span class="meet-chip meet-chip-6">Year 6</span><span class="meet-day">Monday</span><span class="meet-time">17:40 – 18:10</span></li>
+          </ul>
+          <a class="meet-btn" href="https://meet.google.com/ohd-bjdt-bdo" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+            <span>Join Meeting</span>
+          </a>
+        </section>
       </div>
     </div>
   </main>
