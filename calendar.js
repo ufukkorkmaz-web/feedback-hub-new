@@ -18,27 +18,27 @@
 
   /* ---------- STYLES ---------- */
   const css = `
-  .cal-panel{position:relative;color:var(--t-label);display:flex;flex-direction:column;flex:1;width:100%;min-width:0;padding:1.25rem}
-  .cal-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem}
-  .cal-head h2{margin:0;font-size:22px;font-weight:700;color:var(--t-title);text-align:center;flex:1}
-  .cal-nav{width:42px;height:42px;border-radius:12px;border:1px solid var(--edge);background:rgba(255,255,255,.12);color:var(--t-title);font-size:20px;line-height:1;display:grid;place-items:center;padding:0}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-  .cal-dow{text-align:center;font-size:13px;font-weight:600;color:var(--t-help);padding:4px 0}
-  .cal-cell{aspect-ratio:1/1;max-height:64px;display:grid;place-items:center;border-radius:14px;font-size:15px;color:var(--t-label);background:transparent;border:1px solid transparent;font-family:inherit;padding:0}
+  .cal-panel{position:relative;color:var(--t-label);display:flex;flex-direction:column;flex:1;width:100%;min-width:0;padding:.9rem 1rem}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem}
+  .cal-head h2{margin:0;font-size:18px;font-weight:700;color:var(--t-title);text-align:center;flex:1}
+  .cal-nav{width:34px;height:34px;border-radius:10px;border:1px solid var(--edge);background:rgba(255,255,255,.12);color:var(--t-title);font-size:18px;line-height:1;display:grid;place-items:center;padding:0}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-dow{text-align:center;font-size:12px;font-weight:600;color:var(--t-help);padding:2px 0}
+  .cal-cell{aspect-ratio:1/1;max-height:64px;display:grid;place-items:center;border-radius:10px;font-size:13px;color:var(--t-label);background:transparent;border:1px solid transparent;font-family:inherit;padding:0}
   .cal-monday{background:rgba(121,235,221,.2);border-color:rgba(121,235,221,.55);font-weight:700;cursor:pointer}
   .cal-monday:hover,.cal-monday:focus-visible{background:rgba(121,235,221,.38)}
   .cal-week{background:linear-gradient(135deg,#52d9ca,#658ff1);color:#06214e;border-color:transparent;box-shadow:0 0 0 3px rgba(121,235,221,.35)}
   .cal-week:hover,.cal-week:focus-visible{background:linear-gradient(135deg,#52d9ca,#658ff1)}
   .cal-today{outline:2px solid #ffd54a;outline-offset:2px}
   .cal-today:not(.cal-monday){background:rgba(255,213,74,.16);font-weight:700}
-  .cal-legend{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;margin-top:.75rem;font-size:13px;color:var(--t-help)}
+  .cal-legend{display:flex;flex-wrap:wrap;gap:.25rem 1rem;margin-top:.5rem;font-size:12px;color:var(--t-help)}
   .cal-legend span{display:inline-flex;align-items:center;gap:.45rem}
-  .cal-legend i{width:16px;height:16px;border-radius:5px;display:inline-block}
-  .cal-summary{margin:.6rem 0 0;font-size:14px;line-height:1.5;color:var(--t-intro)}
+  .cal-legend i{width:13px;height:13px;border-radius:5px;display:inline-block}
+  .cal-summary{margin:.4rem 0 0;font-size:13px;line-height:1.4;color:var(--t-intro)}
   .cal-tip{position:absolute;z-index:30;transform:translate(-50%,-100%);min-width:200px;max-width:270px;padding:.7rem .9rem;border-radius:14px;background:rgba(3,14,44,.96);border:1px solid var(--edge);color:#eef5ff;font-size:14px;line-height:1.5;pointer-events:none;box-shadow:0 12px 30px rgba(0,0,0,.35)}
   .cal-tip[hidden]{display:none}
   .cal-tip b{color:#9decE5}
-  @media(min-width:1024px){#cal-grid{flex:1;min-height:0;grid-auto-rows:minmax(calc(var(--u,14px)*2),1fr)}.cal-grid{gap:calc(var(--u,14px)*.45)}.cal-panel{padding:calc(var(--u,14px)*1.7);border-radius:calc(var(--u,14px)*2)}.cal-panel .cal-cell{aspect-ratio:auto;max-height:none;font-size:calc(var(--u,14px)*1.3);border-radius:calc(var(--u,14px)*.9)}.cal-head{margin-bottom:calc(var(--u,14px)*.9)}.cal-head h2{font-size:calc(var(--u,14px)*1.9)}.cal-nav{width:calc(var(--u,14px)*3);height:calc(var(--u,14px)*3);font-size:calc(var(--u,14px)*1.7);border-radius:calc(var(--u,14px)*.9)}.cal-dow{font-size:calc(var(--u,14px)*1.05)}.cal-legend{font-size:calc(var(--u,14px)*1);gap:.4em 1.2em;margin-top:calc(var(--u,14px)*.9)}.cal-legend i{width:1.2em;height:1.2em}.cal-summary{font-size:calc(var(--u,14px)*1.15);margin-top:calc(var(--u,14px)*.7)}.cal-tip{font-size:calc(var(--u,14px)*1.1);min-width:calc(var(--u,14px)*15);max-width:calc(var(--u,14px)*20)}}
+  @media(min-width:1024px){#cal-grid{flex:1;min-height:0;grid-auto-rows:minmax(24px,1fr)}.cal-panel .cal-cell{aspect-ratio:auto;max-height:none}}
   @media(max-width:640px){.cal-cell{font-size:14px;border-radius:10px}.cal-grid{gap:4px}}`;
 
   /* ---------- HELPERS ---------- */
@@ -81,7 +81,7 @@
           <button type="button" class="cal-nav" id="cal-next" aria-label="Next month">›</button>
         </div>
         <div class="cal-grid" id="cal-dows"></div>
-        <div class="cal-grid" id="cal-grid" style="margin-top:6px"></div>
+        <div class="cal-grid" id="cal-grid" style="margin-top:4px"></div>
         <div class="cal-legend">
           <span><i style="background:rgba(121,235,221,.35);border:1px solid rgba(121,235,221,.7)"></i>Feedback Monday (hover or tap)</span>
           <span><i style="background:linear-gradient(135deg,#52d9ca,#658ff1)"></i>This week's Monday</span>
@@ -131,6 +131,8 @@
           ? `<button type="button" class="${cls.join(" ")}" data-date="${y}-${m + 1}-${d}">${d}</button>`
           : `<span class="${cls.join(" ")}">${d}</span>`;
       }
+      // always draw 6 weeks so the calendar never changes height between months
+      for (let i = offset + days; i < 42; i++) html += '<span class="cal-cell"></span>';
       grid.innerHTML = html;
     }
 
