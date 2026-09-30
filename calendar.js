@@ -106,10 +106,11 @@
       if (!s) return;
       tip.innerHTML = `<strong>${fmt(date, { weekday: "long", day: "numeric", month: "long" })}</strong>${line("Year 6", s.y6)}${line("Year 7", s.y7)}`;
       tip.hidden = false;
-      const p = panel.getBoundingClientRect(), b = btn.getBoundingClientRect(), w = tip.offsetWidth;
-      const left = Math.min(Math.max(b.left - p.left + b.width / 2, w / 2 + 8), p.width - w / 2 - 8);
+      const w = tip.offsetWidth;
+      const cx = btn.offsetLeft + btn.offsetWidth / 2;   // position inside the panel (not affected by page scaling)
+      const left = Math.min(Math.max(cx, w / 2 + 8), panel.clientWidth - w / 2 - 8);
       tip.style.left = left + "px";
-      tip.style.top = (b.top - p.top - 8) + "px";
+      tip.style.top = (btn.offsetTop - 8) + "px";
     }
 
     function render() {
