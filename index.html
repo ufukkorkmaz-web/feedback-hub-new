@@ -9,44 +9,18 @@
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <style>
-    #menu-view{--u:14px}
-    .menu-layout{display:grid;gap:1.5rem;grid-template-columns:1fr;width:100%;max-width:72rem;margin:0 auto;padding:1.5rem 1rem}
-    .menu-left{display:flex;flex-direction:column;gap:1.5rem;min-width:0}
-    .menu-buttons{display:grid;gap:1rem;grid-template-columns:1fr 1fr;flex:1}
-    .menu-right{display:flex;min-width:0}
-    .m-hero{border-radius:28px;padding:1.25rem 1.5rem;text-align:center}
-    .m-logo{display:block;width:96px;height:96px;object-fit:contain;margin:0 auto .75rem}
-    .m-kicker{margin:0 0 .5rem;font-weight:700;text-transform:uppercase;color:#9decE5;font-size:22px;letter-spacing:.12rem}
-    .m-title{margin:0;font-weight:700;color:#f4f9ff;font-size:30px}
-    .m-intro{margin:.5rem auto 0;max-width:36rem;color:#d6e4f7;font-size:16px;line-height:1.5}
-    .menu-buttons .menu-option{min-height:0;display:flex;flex-direction:column;align-items:flex-start;border-radius:26px;padding:1.25rem;text-align:left;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
-    .menu-option>span{position:relative;z-index:10;display:block}
-    .b-kicker{font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:13px}
-    .b-title{margin-top:.5rem;font-weight:700;font-size:30px}
-    .b-copy{margin-top:.5rem;font-size:14px;line-height:1.5}
-    .menu-option .b-action{display:inline-flex;align-items:center;gap:.5rem;margin-top:auto;padding-top:1rem;font-weight:700;font-size:15px}
-    .b6{background:linear-gradient(135deg,#fff37b,#67e8f9);color:#073d67}.b6 .b-kicker{color:#076eaa}.b6 .b-title,.b6 .b-action{color:#073d67}.b6 .b-copy{color:#155b83}
-    .b7{background:linear-gradient(135deg,#1e4f96,#3179b9);color:#effcff}.b7 .b-kicker{color:#9decE5}.b7 .b-title{color:#f4f9ff}.b7 .b-copy{color:#d6e4f7}.b7 .b-action{color:#effcff}
-    @media(max-width:640px){.menu-buttons{grid-template-columns:1fr}}
-    /* Desktop: fills the window inside a margin (5.5% top/bottom, 3.8% left/right) and scales with it */
+    .menu-layout{display:grid;gap:1.5rem;grid-template-columns:1fr;width:100%}
+    .menu-hub{order:1;min-width:0}
+    .menu-buttons{order:2;display:grid;gap:1rem;grid-template-columns:1fr 1fr}
+    .menu-buttons .menu-option{min-height:0}
+    .menu-right{order:3;display:flex;min-width:0}
+    .menu-extra{order:4;display:flex;min-width:0}
     @media(min-width:1024px){
-      #menu-view{--u:min(1.25vw,2.2vh);--mv:max(20px,5.5vh);--mh:max(24px,3.8vw)}
-      #menu-view.active{display:flex;min-height:100vh;min-height:100dvh;padding:var(--mv) var(--mh)}
-      .menu-layout{flex:1;align-self:stretch;min-height:calc(100vh - 2*var(--mv));min-height:calc(100dvh - 2*var(--mv));max-width:calc(var(--u)*110);grid-template-columns:1fr 1fr;gap:calc(var(--u)*1.6);padding:0}
-      .menu-left{gap:calc(var(--u)*1.6)}
-      .menu-buttons{gap:calc(var(--u)*1.4)}
-      .m-hero{padding:calc(var(--u)*1.5) calc(var(--u)*2);border-radius:calc(var(--u)*2)}
-      .m-logo{width:calc(var(--u)*7);height:calc(var(--u)*7);margin-bottom:calc(var(--u)*.8)}
-      .m-kicker{font-size:calc(var(--u)*1.6);margin-bottom:calc(var(--u)*.5)}
-      .m-title{font-size:calc(var(--u)*2.7)}
-      .m-intro{font-size:calc(var(--u)*1.15);margin-top:calc(var(--u)*.5)}
-      .menu-buttons .menu-option{padding:calc(var(--u)*1.9);border-radius:calc(var(--u)*2)}
-      .b-kicker{font-size:calc(var(--u)*1)}
-      .b-title{font-size:calc(var(--u)*2.7);margin-top:calc(var(--u)*.6)}
-      .b-copy{font-size:calc(var(--u)*1.15);margin-top:calc(var(--u)*.6)}
-      .menu-option .b-action{font-size:calc(var(--u)*1.2);padding-top:calc(var(--u)*1.2);gap:calc(var(--u)*.6)}
-      .b-action svg{width:calc(var(--u)*1.6);height:calc(var(--u)*1.6)}
+      #menu-view.active{display:flex;align-items:center;min-height:100vh}
+      .menu-layout{grid-template-columns:1fr 1fr;align-items:stretch}
+      .menu-hub,.menu-buttons,.menu-right,.menu-extra{order:0}
     }
+    @media(max-width:640px){.menu-buttons{grid-template-columns:1fr}}
   </style>
 </head>
 <body style="background: linear-gradient(90deg, rgb(0,0,0), rgb(53,51,205));">
@@ -56,31 +30,35 @@
   <div class="orb orb-one" aria-hidden="true"></div>
   <div class="orb orb-two" aria-hidden="true"></div>
 
-  <main id="menu-view" class="view active w-full">
-    <div class="menu-layout">
-      <div class="menu-left">
-        <div class="glass-panel m-hero" style="background:transparent;">
-          <img class="m-logo" src="assets/logo-menu.png" alt="IPT logo">
-          <p class="m-kicker">Teacher reflection hub</p>
-          <h1 class="m-title">IPT Feedback</h1>
-          <p class="m-intro">Choose the year level you are giving feedback for.</p>
-        </div>
-        <section class="menu-buttons" aria-label="Choose a feedback year">
-          <button id="open-year6" type="button" class="menu-option b6">
-            <span class="b-kicker">Bright ideas ahead</span>
-            <span class="b-title">Year 6</span>
-            <span class="b-copy">Share vibrant reflections on your Year 6 IPT teaching experience.</span>
-            <span class="b-action"><i data-lucide="sparkles" aria-hidden="true"></i><span>Give Year 6 feedback</span></span>
-          </button>
-          <button id="open-year7" type="button" class="menu-option b7">
-            <span class="b-kicker">Reflect and refine</span>
-            <span class="b-title">Year 7</span>
-            <span class="b-copy">Continue to the familiar Year 7 IPT feedback experience.</span>
-            <span class="b-action"><i data-lucide="arrow-right" aria-hidden="true"></i><span>Give Year 7 feedback</span></span>
-          </button>
-        </section>
+  <main id="menu-view" class="view active w-full px-4 py-6 sm:px-7">
+    <div class="menu-layout mx-auto max-w-6xl">
+      <div class="glass-panel menu-hub rounded-[28px] px-6 py-5 text-center" style="background:transparent;">
+          <img class="mx-auto mb-3 h-24 w-24 object-contain" src="assets/logo-menu.png" alt="IPT logo">
+          <p class="mb-2 font-bold uppercase" style="color:#9decE5;font-size:22px;letter-spacing:.12rem;">Teacher reflection hub</p>
+          <h1 class="font-semibold" style="color:#f4f9ff;font-weight:700;font-size:30px;">IPT Feedback</h1>
+          <p class="mx-auto mt-2 max-w-xl leading-relaxed" style="color:#d6e4f7;font-size:16px;line-height:1.5;">Choose the year level you are giving feedback for.</p>
       </div>
       <div id="schedule" class="menu-right"></div>
+        <section class="menu-buttons" aria-label="Choose a feedback year">
+          <button id="open-year6" type="button" class="menu-option rounded-[26px] p-5 text-left shadow-2xl" style="background:linear-gradient(135deg,#fff37b,#67e8f9);color:#073d67;">
+            <span class="relative z-10 block font-bold uppercase tracking-[.14em]" style="color:#076eaa;font-size:13px;">Bright ideas ahead</span>
+            <span class="relative z-10 mt-2 block font-semibold" style="color:#073d67;font-weight:700;font-size:30px;">Year 6</span>
+            <span class="relative z-10 mt-2 block leading-relaxed" style="color:#155b83;font-size:14px;">Share vibrant reflections on your Year 6 IPT teaching experience.</span>
+            <span class="relative z-10 mt-4 inline-flex items-center gap-2 font-bold"><i data-lucide="sparkles" aria-hidden="true"></i><span style="color:#073d67;font-size:15px;">Give Year 6 feedback</span></span>
+          </button>
+          <button id="open-year7" type="button" class="menu-option rounded-[26px] p-5 text-left shadow-2xl" style="background:linear-gradient(135deg,#1e4f96,#3179b9);color:#effcff;">
+            <span class="relative z-10 block font-bold uppercase tracking-[.14em]" style="color:#9decE5;font-size:13px;">Reflect and refine</span>
+            <span class="relative z-10 mt-2 block font-semibold" style="color:#f4f9ff;font-weight:700;font-size:30px;">Year 7</span>
+            <span class="relative z-10 mt-2 block leading-relaxed" style="color:#d6e4f7;font-size:14px;">Continue to the familiar Year 7 IPT feedback experience.</span>
+            <span class="relative z-10 mt-4 inline-flex items-center gap-2 font-bold"><i data-lucide="arrow-right" aria-hidden="true"></i><span style="color:#effcff;font-size:15px;">Give Year 7 feedback</span></span>
+          </button>
+        </section>
+      <div id="extra" class="menu-extra">
+        <div class="glass-panel rounded-[28px] px-6 py-5" style="width:100%;">
+          <h2 style="color:var(--t-title);font-size:22px;font-weight:700;">New section</h2>
+          <p class="mt-2" style="color:var(--t-intro);font-size:15px;line-height:1.5;">Replace this text with whatever you want to show here.</p>
+        </div>
+      </div>
     </div>
   </main>
 
