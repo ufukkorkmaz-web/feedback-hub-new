@@ -38,7 +38,7 @@
   .cal-tip{position:absolute;z-index:30;transform:translate(-50%,-100%);min-width:200px;max-width:270px;padding:.7rem .9rem;border-radius:14px;background:rgba(3,14,44,.96);border:1px solid var(--edge);color:#eef5ff;font-size:14px;line-height:1.5;pointer-events:none;box-shadow:0 12px 30px rgba(0,0,0,.35)}
   .cal-tip[hidden]{display:none}
   .cal-tip b{color:#9decE5}
-  @media(min-width:1024px){#cal-grid{flex:1;min-height:0;grid-auto-rows:minmax(34px,1fr)}.cal-panel .cal-cell{aspect-ratio:auto;max-height:none}}
+  @media(min-width:1024px){#cal-grid{flex:1;min-height:0;grid-auto-rows:minmax(calc(var(--u,14px)*2),1fr)}.cal-grid{gap:calc(var(--u,14px)*.45)}.cal-panel{padding:calc(var(--u,14px)*1.7);border-radius:calc(var(--u,14px)*2)}.cal-panel .cal-cell{aspect-ratio:auto;max-height:none;font-size:calc(var(--u,14px)*1.3);border-radius:calc(var(--u,14px)*.9)}.cal-head{margin-bottom:calc(var(--u,14px)*.9)}.cal-head h2{font-size:calc(var(--u,14px)*1.9)}.cal-nav{width:calc(var(--u,14px)*3);height:calc(var(--u,14px)*3);font-size:calc(var(--u,14px)*1.7);border-radius:calc(var(--u,14px)*.9)}.cal-dow{font-size:calc(var(--u,14px)*1.05)}.cal-legend{font-size:calc(var(--u,14px)*1);gap:.4em 1.2em;margin-top:calc(var(--u,14px)*.9)}.cal-legend i{width:1.2em;height:1.2em}.cal-summary{font-size:calc(var(--u,14px)*1.15);margin-top:calc(var(--u,14px)*.7)}.cal-tip{font-size:calc(var(--u,14px)*1.1);min-width:calc(var(--u,14px)*15);max-width:calc(var(--u,14px)*20)}}
   @media(max-width:640px){.cal-cell{font-size:14px;border-radius:10px}.cal-grid{gap:4px}}`;
 
   /* ---------- HELPERS ---------- */
