@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IPT Feedback</title>
+  <link rel="preload" as="image" href="assets/logo-menu.png">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
@@ -65,9 +66,50 @@
     @media(min-width:640px){
       .year-header img{width:clamp(8rem,14vw,11.5rem);height:auto;aspect-ratio:1/1;flex:none;align-self:center;margin-right:clamp(0rem,1.6vw,1.5rem)}
     }
+
+    /* ===== Intro: glass Saturn spins in, then the site fades in ===== */
+    #intro{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;
+      background:radial-gradient(circle at 14% 12%,rgba(114,242,217,.40),transparent 27%),radial-gradient(circle at 86% 16%,rgba(151,182,255,.39),transparent 27%),linear-gradient(135deg,#020c27,#173067);
+      animation:introOut .7s ease 1.2s forwards}
+    #intro.skip{animation:introSkip .35s ease forwards}
+    .intro-orb{position:absolute;border-radius:50%;filter:blur(5px);opacity:.5;animation:drift 9s ease-in-out infinite alternate}
+    .intro-orb.o1{width:210px;height:210px;right:-52px;top:7%;background:#7df4df}
+    .intro-orb.o2{width:260px;height:260px;left:4%;bottom:-120px;background:#7992ff;animation-delay:-3s}
+    .intro-stage{position:relative;display:grid;place-items:center}
+    .intro-stage>*{grid-area:1/1}
+    .saturn{width:min(34vw,9rem);height:auto;opacity:0;filter:drop-shadow(0 0 18px rgba(121,235,221,.35));
+      animation:saturnIn 1s cubic-bezier(.2,.8,.2,1) .1s forwards}
+    .saturn-sheen{animation:saturnSheen 1.1s ease-in-out infinite}
+    @keyframes saturnIn{0%{opacity:0;transform:scale(.6) rotate(-180deg)}40%{opacity:1}100%{opacity:1;transform:scale(1) rotate(0)}}
+    @keyframes saturnSheen{from{transform:translateX(0)}to{transform:translateX(90px)}}
+    @keyframes introOut{to{opacity:0;visibility:hidden}}
+    @keyframes introSkip{to{opacity:0;visibility:hidden}}
+    @media(prefers-reduced-motion:reduce){#intro{display:none}}
   </style>
 </head>
 <body style="background: linear-gradient(90deg, rgb(0,0,0), rgb(53,51,205));">
+  <div id="intro" aria-hidden="true">
+    <i class="intro-orb o1"></i><i class="intro-orb o2"></i>
+    <div class="intro-stage">
+      <svg class="saturn" viewBox="0 0 200 140">
+        <defs>
+          <radialGradient id="sg-body" cx="34%" cy="28%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset=".35" stop-color="#bff7ee" stop-opacity=".45"/><stop offset="1" stop-color="#5a78ff" stop-opacity=".35"/></radialGradient>
+          <linearGradient id="sg-ring" x1="0" x2="1"><stop offset="0" stop-color="#79ebdd" stop-opacity=".1"/><stop offset=".5" stop-color="#eaffff" stop-opacity=".95"/><stop offset="1" stop-color="#9bb2ff" stop-opacity=".1"/></linearGradient>
+          <linearGradient id="sg-sheen" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <clipPath id="sg-clip"><circle cx="100" cy="70" r="34"/></clipPath>
+        </defs>
+        <g transform="rotate(-18 100 70)">
+          <path d="M16 70A84 20 0 0 1 184 70" fill="none" stroke="url(#sg-ring)" stroke-width="5" opacity=".6"/>
+          <path d="M34 70A66 15.5 0 0 1 166 70" fill="none" stroke="url(#sg-ring)" stroke-width="1.6"/>
+          <circle cx="100" cy="70" r="34" fill="url(#sg-body)" stroke="rgba(225,244,255,.55)" stroke-width="1.2"/>
+          <g clip-path="url(#sg-clip)"><g class="saturn-sheen"><rect x="46" y="30" width="18" height="80" fill="url(#sg-sheen)" transform="skewX(-18)"/></g></g>
+          <ellipse cx="88" cy="56" rx="9" ry="4.5" fill="#fff" opacity=".55" transform="rotate(-25 88 56)"/>
+          <path d="M16 70A84 20 0 0 0 184 70" fill="none" stroke="url(#sg-ring)" stroke-width="5" opacity=".75"/>
+          <path d="M34 70A66 15.5 0 0 0 166 70" fill="none" stroke="url(#sg-ring)" stroke-width="1.6"/>
+        </g>
+      </svg>
+    </div>
+  </div>
   <div id="cursor-glow" class="cursor-glow" aria-hidden="true"></div>
   <img class="aurora-image" src="https://images.pexels.com/photos/7130560/pexels-photo-7130560.jpeg?auto=compress&cs=tinysrgb&w=1920" alt="Soft pastel gradient with pink and blue hues">
   <div class="atmosphere" aria-hidden="true"></div>
@@ -234,6 +276,19 @@
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
       new MutationObserver(fit).observe(main, { attributes: true, attributeFilter: ["class"] });
       fit();
+    })();
+  </script>
+<script id="intro-script">
+    /* Intro cleanup: removes the overlay when it has faded out. Click, tap, Esc, Enter or Space skips it. */
+    (function () {
+      var intro = document.getElementById("intro");
+      if (!intro) return;
+      function done() { if (intro && intro.parentNode) intro.parentNode.removeChild(intro); intro = null; }
+      function skip() { if (intro) intro.classList.add("skip"); }
+      intro.addEventListener("animationend", function (e) { if (e.target === intro) done(); });
+      intro.addEventListener("click", skip);
+      document.addEventListener("keydown", function (e) { if (intro && (e.key === "Escape" || e.key === "Enter" || e.key === " ")) skip(); });
+      setTimeout(done, 5000);   // safety net
     })();
   </script>
 </body>
