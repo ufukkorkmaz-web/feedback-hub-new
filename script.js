@@ -2,6 +2,11 @@
 // Where submissions are sent (see README). Google Apps Script web-app URL or Formspree URL.
 const FORM_ENDPOINT = "https://formspree.io/f/xbglqzql";
 
+// Only school emails from this domain can open the questions
+const ALLOWED_EMAIL_DOMAIN = "bilfen.k12.tr";
+const EMAIL_WARNING = "Please enter with your Bilfen credentials. Your school email must end with @" + ALLOWED_EMAIL_DOMAIN + ".";
+const EMAIL_RE = new RegExp("^[^\\s@]+@" + ALLOWED_EMAIL_DOMAIN.replace(/\./g, "\\.") + "$", "i");
+
 const YEARS = {
   year6: {
     label: "Year 6", logo: "assets/logo-year6.png", logoAlt: "Year 7 IPT school badge logo", kicker: "YEAR 6 IPT",
@@ -84,6 +89,7 @@ function renderYear(y, c) {
             <input id="${y}-week" class="field" type="text" required autocomplete="off" placeholder="Enter week"></div>
           <p class="t-help max-w-xs text-sm leading-relaxed">${c.emailHelp}</p>
         </div>
+        <p id="${y}-email-warn" class="email-warn" role="alert" hidden></p>
       </section>
       ${card(y, "worked", "thumbs-up", "What worked well?", c.workedHelp, c.workedQ)}
       ${card(y, "challenge", "frown", "What didn't work?", "Share the challenge, why it happened, and how you responded or improved it.", "What didn't work? Why? How did you handle the problem? *")}
@@ -131,12 +137,25 @@ function setupForm(y) {
   const output = document.getElementById(y + "-output"), status = document.getElementById(y + "-status");
   const button = form.querySelector('button[type="submit"]'), val = id => document.getElementById(`${y}-${id}`).value.trim();
   const say = (msg, ok) => { status.textContent = msg; status.className = "mt-4 min-h-6 text-sm font-medium " + (ok ? "status-success" : "status-error"); };
-  const gate = () => sections.forEach(s => s.classList.toggle("revealed", email.checkValidity() && email.value.trim() !== ""));
+  const emailOk = () => email.checkValidity() && EMAIL_RE.test(email.value.trim());     // must be a valid @bilfen.k12.tr address
+  const gate = () => sections.forEach(s => s.classList.toggle("revealed", emailOk()));
+  const warn = document.getElementById(y + "-email-warn");
+  let warnTimer = 0;
+  const showWarn = () => {
+    const bad = email.value.trim() !== "" && !emailOk();
+    warn.hidden = !bad; warn.textContent = bad ? EMAIL_WARNING : ""; email.classList.toggle("is-warn", bad);
+  };
   const clarity = () => { output.textContent = slider.value + " / 5"; slider.setAttribute("aria-valuenow", slider.value); };
-  email.addEventListener("input", gate); email.addEventListener("change", gate); slider.addEventListener("input", clarity); clarity();
+  email.addEventListener("input", () => {
+    gate(); clearTimeout(warnTimer);
+    if (emailOk() || email.value.trim() === "") showWarn(); else warnTimer = setTimeout(showWarn, 900);   // wait until they stop typing
+  });
+  email.addEventListener("change", () => { gate(); clearTimeout(warnTimer); showWarn(); });
+  slider.addEventListener("input", clarity); clarity();
 
   form.addEventListener("submit", async e => {
     e.preventDefault(); status.textContent = "";
+    if (!emailOk()) { showWarn(); email.focus(); return; }
     if (!form.checkValidity()) { form.reportValidity(); return say("Please complete every required field before submitting your feedback."); }
     button.disabled = true;
     const pretty = {
@@ -150,7 +169,7 @@ function setupForm(y) {
     try {
       const res = await fetch(FORM_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(pretty) });
       if (!res.ok) throw new Error("save");
-      form.reset(); slider.value = "3"; clarity(); gate();
+      form.reset(); slider.value = "3"; clarity(); gate(); showWarn();
       say("Thank you — your feedback has been saved successfully.", true);
     } catch (err) { say("We could not confirm your submission. Please refresh before trying again."); }
     finally { button.disabled = false; }
