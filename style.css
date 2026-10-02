@@ -52,3 +52,7 @@ button:disabled { cursor:wait; opacity:.65; transform:none; }
 .dictate-btn:disabled { opacity:.5; cursor:not-allowed; }
 .dictation-feedback { display:block; min-height:1.25rem; margin-top:.4rem; }
 @keyframes dictate-pulse { 50% { box-shadow:0 0 0 6px rgba(229,72,77,.25); } }
+.email-warn{margin-top:.9rem;padding:.6rem .85rem;border-radius:12px;font-size:14px;font-weight:600;line-height:1.4;background:rgba(255,120,140,.14);border:1px solid rgba(255,150,170,.45);color:#ffd0d8}
+.field.is-warn{border-color:#ff8fa3;box-shadow:0 0 0 3px rgba(255,143,163,.18)}
+.year6-theme .email-warn{background:rgba(255,255,255,.65);border-color:rgba(165,32,69,.4);color:#a52045}
+.year6-theme .field.is-warn{border-color:#d63c64;box-shadow:0 0 0 3px rgba(214,60,100,.18)}
