@@ -104,6 +104,38 @@
     @keyframes satWashIn{to{opacity:1}}
     @keyframes satWashOut{from{opacity:1}to{opacity:0}}
     .sat-mini{width:min(26vw,5.5rem);height:auto;filter:drop-shadow(0 0 16px var(--glow2,rgba(121,235,221,.45)));animation:saturnIn .5s cubic-bezier(.2,.8,.2,1) .05s both}
+
+    /* ===== Speak buttons: soft, slowly rotating glow (cyan blue, teal, white, light blue) ===== */
+    @property --dg-angle{syntax:"<angle>";inherits:false;initial-value:0deg}
+    .dictate-wrap{position:relative;display:inline-flex;flex:0 0 auto;isolation:isolate}
+    .dictate-glow{position:absolute;inset:-4px;z-index:-1;border-radius:999px;pointer-events:none;filter:blur(6px);opacity:.95;transition:opacity .25s ease,transform .16s ease}
+    .dictate-glow::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:5px;
+      background:conic-gradient(from var(--dg-angle,0deg),#3fc7ff,#36d9c5,#ffffff,#a9d2ff,#3fc7ff);
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+      mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+      animation:dgSpin 5.5s linear infinite,dgBreathe 3.6s ease-in-out infinite;animation-play-state:paused}
+    .dictate-wrap.in-view .dictate-glow::before{animation-play-state:running}
+    .dictate-btn:hover+.dictate-glow{transform:translateY(-2px)}
+    .dictate-btn.is-listening+.dictate-glow,.dictate-btn:disabled+.dictate-glow{opacity:0}
+    @keyframes dgSpin{to{--dg-angle:360deg}}
+    @keyframes dgBreathe{0%,100%{opacity:.55}50%{opacity:1}}
+    @media(prefers-reduced-motion:reduce){.dictate-glow::before{animation:none;opacity:.8}}
+
+    /* ===== After a successful submit: confetti + glass thank-you box ===== */
+    .confetti-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9600}
+    .thanks-overlay{position:fixed;inset:0;z-index:9500;display:grid;place-items:center;padding:1rem;background:rgba(2,12,39,.34);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);opacity:0;transition:opacity .3s ease}
+    .thanks-overlay.show{opacity:1}
+    .thanks-card{width:min(100%,26rem);padding:1.9rem 1.6rem 1.7rem;border-radius:28px;text-align:center;
+      background:linear-gradient(150deg,rgba(38,92,170,.62),rgba(10,28,72,.80));border:1px solid var(--edge);
+      box-shadow:0 26px 70px rgba(1,10,37,.55),0 0 40px rgba(82,217,202,.20),inset 0 1px 0 rgba(255,255,255,.2);
+      transform:translateY(16px) scale(.96);transition:transform .42s cubic-bezier(.2,.8,.2,1)}
+    .thanks-overlay.show .thanks-card{transform:none}
+    .thanks-badge{width:64px;height:64px;margin:0 auto 1.1rem;display:grid;place-items:center;border-radius:20px;box-shadow:0 10px 26px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.4)}
+    .thanks-badge svg{width:34px;height:34px}
+    .thanks-check{stroke-dasharray:1;stroke-dashoffset:1}
+    .thanks-overlay.show .thanks-check{animation:thanksCheck .5s ease .25s forwards}
+    @keyframes thanksCheck{to{stroke-dashoffset:0}}
+    @media(prefers-reduced-motion:reduce){.thanks-overlay,.thanks-card{transition:none}.thanks-card{transform:none}.thanks-check{animation:none!important;stroke-dashoffset:0}}
   </style>
 </head>
 <body style="background: linear-gradient(90deg, rgb(0,0,0), rgb(53,51,205));">
