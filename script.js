@@ -177,6 +177,67 @@ function setupForm(y) {
   });
 }
 
+/* ============ DICTATION PUNCTUATION ============ */
+// 1) Spoken punctuation: saying "comma", "full stop", "question mark", "new line" ... types the symbol.
+//    ("period" is left alone on purpose, because teachers also say "first period" for lessons.)
+// 2) Automatic clean-up: every finished phrase gets a full stop (or a question mark when it is phrased like
+//    a question), every sentence starts with a capital letter, and spacing around punctuation is tidied.
+const SPOKEN_PUNCTUATION = [
+  ["full stop", ". "], ["question mark", "? "], ["exclamation mark", "! "], ["exclamation point", "! "],
+  ["semicolon", "; "], ["semi colon", "; "], ["colon", ": "], ["comma", ", "],
+  ["new paragraph", "\n\n"], ["newline", "\n"], ["new line", "\n"]
+];
+const AUX_VERBS = "do|does|did|can|could|would|should|will|shall|is|are|was|were|have|has|had|may|might";
+// "why did ...", "how long does ...", "what was ..."  (but not "what worked well ...")
+const WH_QUESTION = new RegExp("^(?:who|whom|whose|what|when|where|which|why|how)(?:\\s+(?:much|long|often|far|well|old|many\\s+\\w+))?\\s+(?:" + AUX_VERBS + ")\\b", "i");
+// "can we ...", "did the students ...", "is there ..."
+const AUX_QUESTION = /^(?:do|does|did|can|could|would|should|will|is|are|was|were)\s+(?:you|we|they|i|he|she|it|there|this|that|these|those|the|any|anyone|everyone|someone|my|our|your|their|a|an)\b/i;
+
+function applySpokenPunctuation(text) {
+  let out = text;
+  SPOKEN_PUNCTUATION.forEach(([word, symbol]) => {
+    out = out.replace(new RegExp("\\s*\\b" + word + "\\b\\s*", "gi"), symbol);
+  });
+  return out;
+}
+
+function looksLikeQuestion(text) {
+  const parts = text.split(/[.!?\n]+\s*/).filter(part => part.trim());
+  const last = (parts.length ? parts[parts.length - 1] : text).trim();
+  return WH_QUESTION.test(last) || AUX_QUESTION.test(last);
+}
+
+// Joins two pieces of text: no space before punctuation or around line breaks, and a symbol you say
+// replaces the full stop that was added automatically (so "full stop" never makes "..").
+function joinText(base, add) {
+  if (!base) return add;
+  if (!add) return base;
+  if (/^[,.;:?!]/.test(add)) return base.replace(/[,.;:?!]$/, "") + add;
+  if (/\n$/.test(base) || /^\n/.test(add)) return base + add;
+  return base + " " + add;
+}
+
+function startsSentence(text) {
+  return text === "" || /[.!?]["')\]]?\s*$/.test(text) || /\n\s*$/.test(text);
+}
+
+function capitalise(text, atStart) {
+  return text.replace(/(^|[.!?]["')\]]?\s+|\n\s*)([a-z])/g, (match, before, letter) =>
+    before === "" && !atStart ? match : before + letter.toUpperCase());
+}
+
+// segments: [{ text, final }]  (a "segment" is one phrase between pauses). Unfinished phrases get no full stop yet.
+function formatDictation(segments, startsNewSentence) {
+  let out = "";
+  segments.forEach(seg => {
+    let t = applySpokenPunctuation(seg.text).replace(/^[ \t]+|[ \t]+$/g, "");
+    if (!t) return;
+    if (seg.final && !/[.!?,;:]["')\]]?$/.test(t) && !/\n$/.test(t)) t += looksLikeQuestion(t) ? "?" : ".";
+    out = joinText(out, t);
+  });
+  return capitalise(out, startsNewSentence);
+}
+
 function setupDictation() {
   const buttons = document.querySelectorAll("[data-dictate-for]");
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -214,7 +275,7 @@ function setupDictation() {
       const mySession = ++session;
       let committed = textarea.value.trim();
       const write = extra => {
-        textarea.value = [committed, extra].filter(Boolean).join(" ");
+        textarea.value = joinText(committed, extra);
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
       };
 
@@ -223,7 +284,7 @@ function setupDictation() {
       button.setAttribute("aria-pressed", "true");
       button.setAttribute("aria-label", "Stop dictation");
       button.querySelector("span").textContent = "Stop";
-      feedback.textContent = "Listening… speak naturally, then press Stop.";
+      feedback.textContent = "Listening… speak naturally, then press Stop. Say \"comma\", \"full stop\" or \"question mark\" to add punctuation.";
       textarea.focus();
 
       const begin = () => {
@@ -235,14 +296,15 @@ function setupDictation() {
         rec.onresult = event => {
           if (mySession !== session && activeTextarea === textarea) return;   // a newer session owns this box
           if (isMobile) {
-            let chunk = "";
+            let added = false;
             for (let i = event.resultIndex; i < event.results.length; i++) {
-              if (event.results[i].isFinal) chunk += event.results[i][0].transcript + " ";
+              if (!event.results[i].isFinal) continue;
+              const piece = formatDictation([{ text: event.results[i][0].transcript, final: true }], startsSentence(committed));
+              if (piece) { committed = joinText(committed, piece); added = true; }
             }
-            chunk = chunk.trim();
-            if (chunk) { committed = [committed, chunk].filter(Boolean).join(" "); write(""); }
+            if (added) write("");
           } else {
-            write(Array.from(event.results).map(r => r[0].transcript).join(" ").trim());
+            write(formatDictation(Array.from(event.results).map(r => ({ text: r[0].transcript, final: r.isFinal })), startsSentence(committed)));
           }
         };
         rec.onerror = event => {
