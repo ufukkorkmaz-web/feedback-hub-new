@@ -117,6 +117,8 @@
     .dictate-wrap.in-view .dictate-glow::before{animation-play-state:running}
     .dictate-btn:hover+.dictate-glow{transform:translateY(-2px)}
     .dictate-btn.is-listening+.dictate-glow,.dictate-btn:disabled+.dictate-glow{opacity:0}
+    /* Desktop, while dictating: the glow around Stop follows the sound level (--voice, 0 to 1, set by script.js) */
+    .dictate-wrap.is-voice .dictate-btn.is-listening+.dictate-glow{opacity:calc(.35 + .65*var(--voice,0));inset:calc(-4px - 8px*var(--voice,0));transition:none}
     @keyframes dgSpin{to{--dg-angle:360deg}}
     @keyframes dgBreathe{0%,100%{opacity:.55}50%{opacity:1}}
     @media(prefers-reduced-motion:reduce){.dictate-glow::before{animation:none;opacity:.8}}
