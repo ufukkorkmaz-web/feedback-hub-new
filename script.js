@@ -53,7 +53,7 @@ const card = (y, id, icon, title, help, q) => `
       <div><h2 class="t-title" style="font-size:24px;">${title}</h2><p class="t-help mt-1">${help}</p></div></div>
     <div class="mb-2 flex items-start justify-between gap-3">
       <label for="${y}-${id}" class="t-label block text-sm">${q}</label>
-      <button type="button" class="dictate-btn" data-dictate-for="${y}-${id}" aria-label="Start dictation" aria-pressed="false"><i data-lucide="mic" aria-hidden="true"></i><span>Speak</span></button>
+      <span class="dictate-wrap"><button type="button" class="dictate-btn" data-dictate-for="${y}-${id}" aria-label="Start dictation" aria-pressed="false"><i data-lucide="mic" aria-hidden="true"></i><span>Speak</span></button><span class="dictate-glow" aria-hidden="true"></span></span>
     </div>
     <textarea id="${y}-${id}" class="field" required></textarea>
     <span class="dictation-feedback t-help" role="status" aria-live="polite"></span>
@@ -171,6 +171,7 @@ function setupForm(y) {
       if (!res.ok) throw new Error("save");
       form.reset(); slider.value = "3"; clarity(); gate(); showWarn();
       say("Thank you — your feedback has been saved successfully.", true);
+      try { celebrate(y); } catch (err) { console.error("Celebration failed:", err); }   // never affects the saved result
     } catch (err) { say("We could not confirm your submission. Please refresh before trying again."); }
     finally { button.disabled = false; }
   });
@@ -272,6 +273,121 @@ function setupDictation() {
   });
 }
 
+/* ============ SPEAK BUTTON GLOW ============ */
+// The glow only animates while it is on screen, which keeps phones smooth.
+function setupDictationGlow() {
+  const wraps = document.querySelectorAll(".dictate-wrap");
+  if (!("IntersectionObserver" in window)) { wraps.forEach(w => w.classList.add("in-view")); return; }
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => en.target.classList.toggle("in-view", en.isIntersecting));
+  }, { rootMargin: "80px" });
+  wraps.forEach(w => io.observe(w));
+}
+
+/* ============ AFTER SUBMIT: CONFETTI + THANK-YOU BOX ============ */
+const CONFETTI_COLORS = {
+  year6: ["#fff37b", "#67e8f9", "#ffffff", "#35c9f4", "#9decE5"],
+  year7: ["#52d9ca", "#658ff1", "#9decE5", "#ffffff", "#bfe3ff"]
+};
+
+// One short, light shot from both bottom corners. Skipped for people who prefer reduced motion.
+function fireConfetti(colors) {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const W = window.innerWidth, H = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const canvas = document.createElement("canvas");
+  canvas.className = "confetti-canvas"; canvas.setAttribute("aria-hidden", "true");
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  document.body.appendChild(canvas);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const g = H * 1.7;                                         // gravity, px per second squared
+  const perSide = W < 640 ? 26 : 36;                         // fewer pieces on phones
+  const pieces = [];
+  [1, -1].forEach(dir => {                                   // 1 = left corner (flies right), -1 = right corner (flies left)
+    for (let i = 0; i < perSide; i++) {
+      const peak = rand(0.28, 0.6) * H;                      // how high this piece flies
+      const vy = -Math.sqrt(2 * g * peak), airtime = (2 * -vy) / g;
+      const reach = rand(0.18, 0.68) * Math.min(W * 0.8, H); // how far it travels sideways
+      pieces.push({
+        x: dir > 0 ? 6 : W - 6, y: H - 6, vx: dir * reach / airtime, vy,
+        w: rand(6, 11), h: rand(3.5, 6.5), dot: Math.random() < 0.25,
+        rot: rand(0, Math.PI * 2), vr: rand(-9, 9), flip: rand(6, 12), sway: rand(3, 7),
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: rand(1.9, 2.6), delay: rand(0, 0.12)
+      });
+    }
+  });
+
+  let last = null, t = 0;
+  function frame(now) {
+    if (last === null) last = now;
+    const dt = Math.min((now - last) / 1000, 0.05); last = now; t += dt;
+    ctx.clearRect(0, 0, W, H);
+    let alive = false;
+    for (const p of pieces) {
+      const age = t - p.delay;
+      if (age < 0) { alive = true; continue; }
+      if (age > p.life) continue;
+      alive = true;
+      p.vy += g * dt; p.vx *= Math.exp(-0.6 * dt);
+      p.x += (p.vx + Math.sin(age * p.sway) * 14) * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+      const fadeFrom = p.life * 0.6;
+      ctx.globalAlpha = age > fadeFrom ? Math.max(0, 1 - (age - fadeFrom) / (p.life - fadeFrom)) : 1;
+      ctx.fillStyle = p.color;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      if (p.dot) { ctx.beginPath(); ctx.arc(0, 0, p.w / 2.6, 0, Math.PI * 2); ctx.fill(); }
+      else { ctx.scale(1, Math.cos(age * p.flip)); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); }
+      ctx.restore();
+    }
+    if (alive && t < 3.2) requestAnimationFrame(frame); else canvas.remove();
+  }
+  requestAnimationFrame(frame);
+  setTimeout(() => canvas.remove(), 5000);                   // safety net
+}
+
+// Glass thank-you box. The page behind is blurred slightly until the box is closed.
+function showThanks(y, returnTo) {
+  if (document.querySelector(".thanks-overlay")) return;
+  const c = YEARS[y];
+  const overlay = document.createElement("div");
+  overlay.className = "thanks-overlay";
+  overlay.innerHTML = `
+    <div class="thanks-card" role="dialog" aria-modal="true" aria-labelledby="thanks-title" aria-describedby="thanks-text">
+      <div class="thanks-badge" style="${c.submitBtn}"><svg viewBox="0 0 24 24" fill="none" stroke="${c.submitTxt}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="thanks-check" pathLength="1" d="M5.5 12.5l4.2 4.2L18.5 7.5"/></svg></div>
+      <p class="t-kicker mb-2 uppercase" style="font-size:14px;">${c.kicker}</p>
+      <h2 id="thanks-title" class="t-title" style="font-size:28px;line-height:1.2;">Thank you for your feedback</h2>
+      <p id="thanks-text" class="t-intro mt-3" style="font-size:16px;">Your ${c.label} reflections have been saved. They help us improve together.</p>
+      <button type="button" class="thanks-close mt-6 inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3 font-bold shadow-lg" style="${c.submitBtn}"><span style="color:${c.submitTxt};">Close</span></button>
+    </div>`;
+  const closeBtn = overlay.querySelector(".thanks-close");
+  let closed = false;
+  const close = () => {
+    if (closed) return; closed = true;
+    document.removeEventListener("keydown", onKey, true);
+    overlay.classList.remove("show");                        // box and blur fade away together
+    setTimeout(() => overlay.remove(), 320);
+    if (returnTo && returnTo.focus) { try { returnTo.focus({ preventScroll: true }); } catch (err) {} }
+  };
+  const onKey = e => {
+    if (e.key === "Escape") { e.preventDefault(); close(); }
+    else if (e.key === "Tab") { e.preventDefault(); closeBtn.focus(); }   // only one control: keep focus inside the box
+  };
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+  document.addEventListener("keydown", onKey, true);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => requestAnimationFrame(() => { overlay.classList.add("show"); closeBtn.focus({ preventScroll: true }); }));
+}
+
+function celebrate(y) {
+  const submit = document.querySelector(`#${y}-form button[type="submit"]`);
+  try { showThanks(y, submit); } catch (err) { console.error("Thank-you box failed:", err); }
+  try { fireConfetti(CONFETTI_COLORS[y]); } catch (err) { console.error("Confetti failed:", err); }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Menu first, so it always works
   document.getElementById("open-year6").addEventListener("click", () => showView("year6-view"));
@@ -283,6 +399,7 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (err) { console.error("Form setup failed:", err); }
 
   try { setupDictation(); } catch (err) { console.error("Dictation setup failed:", err); }
+  try { setupDictationGlow(); } catch (err) { console.error("Dictation glow failed:", err); }
   try { lucide.createIcons(); } catch (err) { console.error("Icons failed:", err); }
 
   try {
