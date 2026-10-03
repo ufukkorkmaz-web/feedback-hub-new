@@ -238,6 +238,48 @@ function formatDictation(segments, startsNewSentence) {
   return capitalise(out, startsNewSentence);
 }
 
+/* ============ SPEAK BUTTON: SOUND-REACTIVE GLOW (desktop only) ============ */
+// While dictating, the microphone volume is measured and written to the CSS variable --voice (0 to 1) on the
+// button's wrapper, which the stylesheet turns into a brighter, wider glow. Nothing is recorded or sent anywhere.
+// Returns a stop() function. If the microphone can't be opened, nothing changes and dictation carries on as usual.
+function startVoiceMeter(wrap) {
+  let stopped = false, stream = null, audio = null, frame = 0;
+  const stop = () => {
+    stopped = true; cancelAnimationFrame(frame);
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    if (audio && audio.state !== "closed") audio.close().catch(() => {});
+    wrap.classList.remove("is-voice"); wrap.style.removeProperty("--voice");
+  };
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return stop;
+
+  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false } }).then(s => {
+    if (stopped) { s.getTracks().forEach(track => track.stop()); return; }   // dictation ended while the mic was opening
+    stream = s; audio = new AudioCtx();
+    if (audio.resume) audio.resume().catch(() => {});
+    const analyser = audio.createAnalyser();
+    analyser.fftSize = 1024;
+    audio.createMediaStreamSource(s).connect(analyser);
+    const samples = new Float32Array(analyser.fftSize);
+    let level = 0, peak = 0.05, shown = -1;
+    wrap.classList.add("is-voice");
+    const tick = () => {
+      analyser.getFloatTimeDomainData(samples);
+      let sum = 0;
+      for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+      const rms = Math.sqrt(sum / samples.length);
+      peak = Math.max(rms, peak * 0.998, 0.04);                                    // adapts to quiet and loud microphones
+      const target = Math.min(1, Math.max(0, (rms - 0.012) / (peak - 0.012)));
+      level += (target - level) * (target > level ? 0.45 : 0.1);                   // rises quickly, fades slowly
+      const rounded = Math.round(level * 100) / 100;
+      if (rounded !== shown) { shown = rounded; wrap.style.setProperty("--voice", String(rounded)); }
+      frame = requestAnimationFrame(tick);
+    };
+    tick();
+  }).catch(() => {});
+  return stop;
+}
+
 function setupDictation() {
   const buttons = document.querySelectorAll("[data-dictate-for]");
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -246,9 +288,14 @@ function setupDictation() {
     return;
   }
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // The sound-reactive glow is desktop-only: on phones and iPads a second microphone stream can interrupt dictation.
+  const voiceGlow = !isMobile && !(/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+    && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  let stopMeter = null;
   let activeButton = null, activeTextarea = null, activeFeedback = null, recognition = null, wantListening = false, session = 0;
 
   function resetButton() {
+    if (stopMeter) { stopMeter(); stopMeter = null; }
     if (!activeButton) return;
     if (activeFeedback && activeFeedback.textContent.startsWith("Listening")) activeFeedback.textContent = "";
     activeButton.classList.remove("is-listening");
@@ -290,6 +337,11 @@ function setupDictation() {
       const begin = () => {
         const rec = new Recognition();
         recognition = rec;
+        rec.onaudiostart = () => {                      // the browser is now listening, so the microphone permission is settled
+          if (!voiceGlow || recognition !== rec || stopMeter) return;
+          const wrap = button.closest(".dictate-wrap");
+          if (wrap) stopMeter = startVoiceMeter(wrap);
+        };
         rec.lang = "en-US";
         rec.continuous = !isMobile;
         rec.interimResults = !isMobile;
