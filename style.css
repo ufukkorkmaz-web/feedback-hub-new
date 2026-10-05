@@ -61,3 +61,4 @@ button:disabled { cursor:wait; opacity:.65; transform:none; }
 .draft-note{margin:.75rem 0 0;font-size:13px;color:var(--t-help)}
 .draft-note[hidden]{display:none}
 .draft-clear{margin-left:.5rem;padding:0;border:0;background:none;color:#9decE5;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
+.year6-theme .draft-clear{color:#076eaa}
