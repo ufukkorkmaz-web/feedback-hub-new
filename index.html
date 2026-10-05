@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IPT Feedback</title>
   <script>document.documentElement.classList.add("js")</script>
+  <script id="preview-clock">
+    /* PREVIEW MODE (admin helper): open the site with ?preview=1 to get a panel for testing any date and time.
+       ?preview=2026-10-05T16:35 starts the site's clock at that Istanbul time. Without "preview" in the address this does nothing. */
+    (function () {
+      var v = new URLSearchParams(location.search).get("preview");
+      if (v === null) return;
+      var RD = Date, off = 0, m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
+      if (m) off = RD.UTC(+m[1], m[2] - 1, +m[3], +m[4] - 3, +m[5]) - RD.now();   // Istanbul = UTC+3 all year
+      window.__pv = true; window.__RealDate = RD;
+      function FD() {
+        var a = [].slice.call(arguments);
+        if (!(this instanceof FD)) return new RD(RD.now() + off).toString();
+        if (!a.length) return new RD(RD.now() + off);
+        return new (Function.prototype.bind.apply(RD, [null].concat(a)))();
+      }
+      FD.prototype = RD.prototype; FD.now = function () { return RD.now() + off; }; FD.UTC = RD.UTC; FD.parse = RD.parse;
+      window.Date = FD;
+    })();
+  </script>
   <meta name="theme-color" content="#0b1230">
   <meta name="apple-mobile-web-app-title" content="IPT Feedback">
   <link rel="apple-touch-icon" href="assets/logo-menu.png">
@@ -348,7 +367,7 @@
       var intro = document.getElementById("intro");
       var ready = function () { document.body.classList.add("page-ready"); };
       var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!intro || reduce) { ready(); if (intro) intro.remove(); return; }
+      if (!intro || reduce || window.__pv) { ready(); if (intro) intro.remove(); return; }
       var t = setTimeout(ready, 1250);                     // boxes start rising as the intro fades
       function done() { if (intro && intro.parentNode) intro.parentNode.removeChild(intro); intro = null; }
       function skip() { if (!intro) return; clearTimeout(t); ready(); intro.classList.add("skip"); }
@@ -397,6 +416,69 @@
           setTimeout(function () { el.remove(); busy = false; }, 400);
         }, 650);
       }, true);
+    })();
+  </script>
+<script id="preview-panel">
+    /* PREVIEW MODE panel (only appears with ?preview=1 in the address). Safe to delete along with the "preview-clock" script. */
+    (function () {
+      if (!window.__pv) return;
+      var RD = window.__RealDate, IST = 3 * 36e5, DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+      var ist = function (t) { return new RD(t + IST); };                                   // read with getUTC* = Istanbul clock
+      var fmtIn = function (d) { return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) + "T" + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()); };
+      var label = function (d) { return DAYS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MON[d.getUTCMonth()] + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()); };
+      var nowT = function () { return Date.now(); };
+
+      var css = document.createElement("style");
+      css.textContent = ".pv-pill{position:fixed;left:12px;bottom:12px;z-index:9700;display:flex;align-items:center;gap:.45rem;padding:.55rem .85rem;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(3,14,44,.88);color:#eef5ff;font:600 13px/1 inherit;font-family:inherit;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.35)}" +
+        ".pv-pill i{width:8px;height:8px;border-radius:50%;background:#ffd54a}" +
+        ".pv-panel{position:fixed;left:12px;bottom:56px;z-index:9700;width:min(340px,calc(100vw - 24px));max-height:78vh;overflow:auto;padding:14px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(3,14,44,.94);color:#eef5ff;font-size:13px;box-shadow:0 18px 50px rgba(0,0,0,.5);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}" +
+        ".pv-panel[hidden]{display:none}.pv-panel h3{margin:0 0 2px;font-size:15px}.pv-panel p{margin:0 0 10px;color:#b9c9e6;line-height:1.4}" +
+        ".pv-now{margin:8px 0;padding:8px 10px;border-radius:12px;background:rgba(121,235,221,.14);border:1px solid rgba(121,235,221,.4);font-weight:700;font-size:14px}" +
+        ".pv-row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}" +
+        ".pv-panel button,.pv-panel input{font:inherit;font-family:inherit}" +
+        ".pv-b{padding:.4rem .65rem;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#eef5ff;cursor:pointer}" +
+        ".pv-b:hover{background:rgba(255,255,255,.2)}.pv-go{background:linear-gradient(135deg,#52d9ca,#658ff1);color:#06214e;border:0;font-weight:700}" +
+        ".pv-in{flex:1;min-width:0;padding:.4rem .5rem;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;color-scheme:dark}" +
+        ".pv-h{margin:12px 0 2px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9decE5;font-weight:700}";
+      document.head.appendChild(css);
+
+      var pill = document.createElement("button");
+      pill.type = "button"; pill.className = "pv-pill"; pill.innerHTML = "<i></i><span>Preview</span>";
+      var panel = document.createElement("div");
+      panel.className = "pv-panel"; panel.hidden = true;
+      panel.innerHTML = "<h3>Preview mode</h3><p>Pick any date and time (Istanbul time) to see how the site looks then. Submissions are not sent while previewing.</p>" +
+        "<div class='pv-now' id='pv-now'></div>" +
+        "<div class='pv-h'>Jump to</div><div class='pv-row' id='pv-presets'></div>" +
+        "<div class='pv-h'>Rotation weeks</div><div class='pv-row'><button type='button' class='pv-b' id='pv-wm'>\u2190 Week</button><button type='button' class='pv-b' id='pv-wp'>Week \u2192</button></div>" +
+        "<div class='pv-h'>Exact date and time</div><div class='pv-row'><input class='pv-in' id='pv-dt' type='datetime-local'><button type='button' class='pv-b pv-go' id='pv-go'>Go</button></div>" +
+        "<div class='pv-row' style='margin-top:12px'><button type='button' class='pv-b' id='pv-real'>Real time</button><button type='button' class='pv-b' id='pv-exit'>Exit preview</button></div>";
+      document.body.appendChild(pill); document.body.appendChild(panel);
+
+      var go = function (str) { location.search = "?preview=" + str; };
+      var cur = ist(nowT());
+      document.getElementById("pv-dt").value = fmtIn(cur);
+      var nowEl = document.getElementById("pv-now");
+      var tick = function () { nowEl.textContent = "Site thinks it is: " + label(ist(nowT())); };
+      tick(); setInterval(tick, 15000);
+
+      // quick states, built around the Monday of the real current week
+      var real = ist(RD.now()), dow = (real.getUTCDay() + 6) % 7;
+      var mon0 = Date.UTC(real.getUTCFullYear(), real.getUTCMonth(), real.getUTCDate() - dow);   // Monday 00:00 (as Istanbul wall clock)
+      var at = function (dayOff, hh, mm) { return new RD(mon0 + dayOff * 864e5 + (hh * 60 + mm) * 6e4).toISOString().slice(0, 16); };
+      var presets = [["Year 7 in 15 min", 0, 16, 30], ["Year 7 live", 0, 16, 55], ["Between meetings", 0, 17, 10], ["Year 6 in 15 min", 0, 17, 25], ["Year 6 live", 0, 17, 50], ["After meetings", 0, 18, 30], ["Tuesday morning", 1, 10, 0], ["Friday noon", 4, 12, 0], ["Weekend", 5, 11, 0]];
+      var box = document.getElementById("pv-presets");
+      presets.forEach(function (p) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "pv-b"; b.textContent = p[0];
+        b.onclick = function () { go(at(p[1], p[2], p[3])); }; box.appendChild(b);
+      });
+      var shift = function (days) { go(fmtIn(ist(nowT() + days * 864e5))); };
+      document.getElementById("pv-wm").onclick = function () { shift(-7); };
+      document.getElementById("pv-wp").onclick = function () { shift(7); };
+      document.getElementById("pv-go").onclick = function () { var v = document.getElementById("pv-dt").value; if (v) go(v); };
+      document.getElementById("pv-real").onclick = function () { go("1"); };
+      document.getElementById("pv-exit").onclick = function () { location.href = location.pathname; };
+      pill.onclick = function () { panel.hidden = !panel.hidden; };
     })();
   </script>
 <script id="local-clock">
