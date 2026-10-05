@@ -56,3 +56,8 @@ button:disabled { cursor:wait; opacity:.65; transform:none; }
 .field.is-warn{border-color:#ff8fa3;box-shadow:0 0 0 3px rgba(255,143,163,.18)}
 .year6-theme .email-warn{background:rgba(255,255,255,.65);border-color:rgba(165,32,69,.4);color:#a52045}
 .year6-theme .field.is-warn{border-color:#d63c64;box-shadow:0 0 0 3px rgba(214,60,100,.18)}
+
+/* Draft saving note */
+.draft-note{margin:.75rem 0 0;font-size:13px;color:var(--t-help)}
+.draft-note[hidden]{display:none}
+.draft-clear{margin-left:.5rem;padding:0;border:0;background:none;color:#9decE5;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
