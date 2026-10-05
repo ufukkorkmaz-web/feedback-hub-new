@@ -91,3 +91,12 @@ button:disabled { cursor:wait; opacity:.65; transform:none; }
 .hf-option .t-help{margin:0;line-height:1.5}
 .year6-theme .hf-option{background:rgba(255,255,255,.5)}
 @media(max-width:700px){.hf-options{grid-template-columns:1fr}}
+
+/* Spam trap: invisible to people, tempting to bots */
+.hp-field{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;opacity:0}
+
+/* "Waiting to be sent" note */
+.outbox-note{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9450;display:flex;align-items:center;gap:.6rem;max-width:min(24rem,calc(100vw - 28px));padding:.65rem .9rem;border-radius:16px;border:1px solid rgba(121,235,221,.5);background:rgba(3,14,44,.93);color:#eef5ff;font-size:14px;line-height:1.4;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.outbox-note[hidden]{display:none}
+.outbox-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#ffd54a}
+.outbox-retry{flex:none;padding:.25rem .75rem;border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:inherit;font:inherit;font-weight:700}
