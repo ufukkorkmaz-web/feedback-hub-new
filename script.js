@@ -303,8 +303,45 @@ function setupDictation() {
     }, ms);
   };
 
+  /* ----- Desktop: the glow around "Stop" follows how loud you speak (sets --voice from 0 to 1 on the button's wrapper) ----- */
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let meter = null;
+  function stopMeter() {
+    if (!meter) return;
+    const m = meter; meter = null;
+    m.dead = true; cancelAnimationFrame(m.raf);
+    try { m.stream && m.stream.getTracks().forEach(t => t.stop()); } catch (err) {}
+    try { m.ctx && m.ctx.close(); } catch (err) {}
+    if (m.wrap) { m.wrap.classList.remove("is-voice"); m.wrap.style.removeProperty("--voice"); }
+  }
+  function startMeter(wrap) {
+    stopMeter();
+    if (isMobile || reduceMotion || !wrap || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    const m = meter = { wrap, dead: false, raf: 0, stream: null, ctx: null };
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      if (m.dead) { stream.getTracks().forEach(t => t.stop()); return; }       // dictation ended before the mic opened
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { stream.getTracks().forEach(t => t.stop()); return; }
+      m.stream = stream; m.ctx = new AC();
+      const analyser = m.ctx.createAnalyser(); analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.6;
+      m.ctx.createMediaStreamSource(stream).connect(analyser);
+      const data = new Uint8Array(analyser.fftSize); let level = 0;
+      wrap.classList.add("is-voice");
+      const tick = () => {
+        if (m.dead) return;
+        analyser.getByteTimeDomainData(data);
+        let sum = 0; for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+        const target = Math.min(1, Math.sqrt(sum / data.length) * 7);          // quiet room ~0, normal speech ~0.5-1
+        level += (target - level) * (target > level ? 0.5 : 0.12);              // rises fast, falls slowly
+        wrap.style.setProperty("--voice", level.toFixed(3));
+        m.raf = requestAnimationFrame(tick);
+      };
+      tick();
+    }).catch(() => { m.dead = true; });                                         // no mic access: the glow simply stays off
+  }
+
   function resetButton() {
-    clearSilence();
+    clearSilence(); stopMeter();
     if (!activeButton) return;
     if (activeFeedback && activeFeedback.textContent.startsWith("Listening")) activeFeedback.textContent = "";
     activeButton.classList.remove("is-listening");
@@ -343,6 +380,7 @@ function setupDictation() {
       feedback.textContent = "Listening… speak naturally, then press Stop. Say \"comma\", \"full stop\" or \"question mark\" to add punctuation.";
       textarea.focus();
       armSilence(SILENCE_AT_START_MS);
+      startMeter(button.closest(".dictate-wrap"));
 
       const begin = () => {
         const rec = new Recognition();
