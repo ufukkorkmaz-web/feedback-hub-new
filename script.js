@@ -46,6 +46,64 @@ const SCORES = {
   engagement: ["Very low engagement", "Low engagement", "Moderate engagement", "High engagement", "Very high engagement"]
 };
 
+/* ============ SEND LATER (OUTBOX) ============ */
+// If a submission cannot be sent (no signal, server busy), it waits on this device and is sent automatically later.
+const OUTBOX_KEY = "ipt-outbox", OUTBOX_DAYS = 14;
+const outboxRead = () => { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || "[]").filter(i => Date.now() - i.t < OUTBOX_DAYS * 864e5); } catch (err) { return []; } };
+const outboxWrite = list => { try { list.length ? localStorage.setItem(OUTBOX_KEY, JSON.stringify(list)) : localStorage.removeItem(OUTBOX_KEY); } catch (err) {} };
+let outboxFlushing = false, outboxNote = null, outboxTimer = 0;
+
+function outboxShow(msg, retry, ms) {
+  if (!outboxNote) {
+    outboxNote = document.createElement("div");
+    outboxNote.className = "outbox-note"; outboxNote.setAttribute("role", "status"); outboxNote.setAttribute("aria-live", "polite");
+    outboxNote.addEventListener("click", e => { if (e.target.closest(".outbox-retry")) outboxFlush(true); });
+    document.body.appendChild(outboxNote);
+  }
+  clearTimeout(outboxTimer);
+  if (!msg) { outboxNote.hidden = true; return; }
+  outboxNote.hidden = false;
+  outboxNote.innerHTML = '<span class="outbox-dot" aria-hidden="true"></span><span class="outbox-text"></span>' + (retry ? '<button type="button" class="outbox-retry">Send now</button>' : "");
+  outboxNote.querySelector(".outbox-text").textContent = msg;
+  if (ms) outboxTimer = setTimeout(outboxRefresh, ms);
+}
+function outboxRefresh() {
+  const n = outboxRead().length;
+  outboxShow(n ? (n === 1 ? "1 reflection is waiting to be sent." : n + " reflections are waiting to be sent.") : "", n > 0);
+}
+function outboxAdd(payload, year) {
+  const list = outboxRead(); list.push({ t: Date.now(), y: year, payload });
+  outboxWrite(list); outboxRefresh();
+}
+// Sends everything waiting. Stops at the first connection problem and tries again later.
+async function outboxFlush(manual) {
+  if (outboxFlushing || window.__pv) return;
+  let list = outboxRead(); if (!list.length) { outboxRefresh(); return; }
+  if (navigator.onLine === false && !manual) return;
+  outboxFlushing = true; let sent = 0, dropped = 0;
+  try {
+    while (list.length) {
+      let res;
+      try { res = await fetch(FORM_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(list[0].payload) }); }
+      catch (err) { break; }                                              // still offline
+      if (res.status >= 500 || res.status === 429) break;                 // server busy: try again later
+      if (res.ok) sent++; else dropped++;                                 // a refused reflection would never succeed, so it is not kept
+      list.shift(); outboxWrite(list);
+    }
+  } finally { outboxFlushing = false; }
+  if (sent) outboxShow(sent === 1 ? "Your waiting reflection was sent. Thank you!" : sent + " waiting reflections were sent. Thank you!", false, 5000);
+  else if (dropped) outboxShow("A waiting reflection could not be sent. Please submit it again.", false, 6000);
+  else if (manual) outboxShow("Still no connection. We will keep trying.", true, 4000);
+  else outboxRefresh();
+}
+function setupOutbox() {
+  outboxRefresh();
+  outboxFlush();
+  window.addEventListener("online", () => outboxFlush());
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) outboxFlush(); });
+  setInterval(() => outboxFlush(), 30000);
+}
+
 /* ============ RENDERING ============ */
 const card = (y, id, icon, title, help, q) => `
   <section class="question-section reflection-card glass-panel rounded-[24px] p-5 sm:p-7">
@@ -81,6 +139,7 @@ function renderYear(y, c) {
   </div>
   <div class="w-full px-4 pb-10 pt-5 sm:px-7 sm:pb-14">
     <form id="${y}-form" class="form-shell mx-auto max-w-5xl space-y-5" novalidate>
+      <div class="hp-field" aria-hidden="true"><label for="${y}-gotcha">Leave this field empty</label><input type="text" id="${y}-gotcha" name="_gotcha" tabindex="-1" autocomplete="off"></div>
       <section class="glass-panel rounded-[24px] p-5 sm:p-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div class="min-w-0 flex-1"><label for="${y}-email" class="t-label mb-2 block">Email</label>
@@ -212,6 +271,11 @@ function setupForm(y) {
     if (!emailOk()) { showWarn(); email.focus(); return; }
     if (!form.checkValidity()) { form.reportValidity(); return say("Please complete every required field before submitting your feedback."); }
     if (window.__pv) return say("Preview mode: nothing was sent.", true);
+    const trap = document.getElementById(y + "-gotcha");
+    if (trap && trap.value) {                                   // a hidden field only bots fill in: pretend it worked, send nothing
+      form.reset(); slider.value = "3"; clarity(); gate(); draftClear();
+      return say("Thank you — your feedback has been saved successfully.", true);
+    }
     button.disabled = true;
     const pretty = {
       _subject: `New ${YEARS[y].label} IPT feedback (Week ${val("week")})`, email: val("email"),
@@ -219,10 +283,22 @@ function setupForm(y) {
       "What worked well?": val("worked"), "What didn't work?": val("challenge"), "Shape the next plan": val("plan"),
       "Overall rating of the week (1-5)": val("overall"), "Effectiveness of teaching resources (1-5)": val("resources"),
       "Student engagement (1-5)": val("engagement"), "Learning objectives clarity (1-5)": slider.value,
-      "One more thought": val("notes")
+      "One more thought": val("notes"),
+      _gotcha: ""                                                  // spam trap, stays empty for real people
+    };
+    const clearForm = () => {
+      draftOff = true; clearTimeout(draftTimer);
+      form.reset(); slider.value = "3"; clarity(); gate(); showWarn(); draftClear(); draftOff = false;
     };
     try {
-      const res = await fetch(FORM_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(pretty) });
+      let res = null;
+      try { res = await fetch(FORM_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(pretty) }); }
+      catch (netErr) { res = null; }                              // no connection
+      if (!res || res.status >= 500 || res.status === 429) {      // cannot send right now: keep it and send automatically later
+        outboxAdd(pretty, y); clearForm();
+        say("No connection right now. Your reflection is saved on this device and will be sent automatically as soon as you are back online.", true);
+        return;
+      }
       if (!res.ok) throw new Error("save");
       draftOff = true; clearTimeout(draftTimer);
       form.reset(); slider.value = "3"; clarity(); gate(); showWarn(); draftClear(); draftOff = false;
@@ -751,6 +827,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ["year6", "year7"].forEach(y => document.getElementById("back-" + y).addEventListener("click", () => showView("menu-view")));
   } catch (err) { console.error("Form setup failed:", err); }
 
+  try { setupOutbox(); } catch (err) { console.error("Outbox setup failed:", err); }
   try { setupDictation(); } catch (err) { console.error("Dictation setup failed:", err); }
   try { setupDictationGlow(); } catch (err) { console.error("Dictation glow failed:", err); }
   try { lucide.createIcons(); } catch (err) { console.error("Icons failed:", err); }
