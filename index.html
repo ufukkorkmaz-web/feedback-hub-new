@@ -45,6 +45,17 @@
     .meet-btn:focus-visible{outline:2px solid #ffd54a;outline-offset:3px}
     .meet-btn svg{width:22px;height:22px;flex:none}
     @media(prefers-reduced-motion:reduce){.meet-btn{transition:none}.meet-btn:hover{transform:none}}
+    /* Phones: keep the Year 6 / Year 7 rows inside the card */
+    .meet-card,.meet-list,.meet-row{min-width:0;max-width:100%;box-sizing:border-box}
+    .meet-row{flex-wrap:wrap;row-gap:.2rem}
+    @media(max-width:480px){
+      .meet-card{padding:1rem}
+      .meet-row{gap:.5rem;padding:.5rem .65rem}
+      .meet-chip{min-width:4rem;font-size:13px;padding:.25rem .6rem}
+      .meet-day{font-size:13px}
+      .meet-time{font-size:15px}
+      .meet-title,.meet-clock{font-size:19px}
+    }
     .fw-card{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.5rem;color:var(--t-label)}
     .fw-head{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem}
     .fw-title{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9decE5}
