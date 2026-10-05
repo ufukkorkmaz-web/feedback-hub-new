@@ -62,3 +62,8 @@ button:disabled { cursor:wait; opacity:.65; transform:none; }
 .draft-note[hidden]{display:none}
 .draft-clear{margin-left:.5rem;padding:0;border:0;background:none;color:#9decE5;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 .year6-theme .draft-clear{color:#076eaa}
+
+/* Speak button sits inside the answer box, bottom right, so it never covers the text */
+.dictate-box{position:relative}
+.dictate-box textarea.field{padding-bottom:3.5rem;min-height:150px;display:block}
+.dictate-box .dictate-wrap{position:absolute;right:1.5rem;bottom:.6rem;z-index:2}
