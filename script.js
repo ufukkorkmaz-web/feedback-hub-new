@@ -51,11 +51,11 @@ const card = (y, id, icon, title, help, q) => `
   <section class="question-section reflection-card glass-panel rounded-[24px] p-5 sm:p-7">
     <div class="mb-5 flex gap-4"><div class="icon-bubble"><i data-lucide="${icon}"></i></div>
       <div><h2 class="t-title" style="font-size:24px;">${title}</h2><p class="t-help mt-1">${help}</p></div></div>
-    <div class="mb-2 flex items-start justify-between gap-3">
-      <label for="${y}-${id}" class="t-label block text-sm">${q}</label>
+    <label for="${y}-${id}" class="t-label mb-2 block text-sm">${q}</label>
+    <div class="dictate-box">
+      <textarea id="${y}-${id}" class="field" required></textarea>
       <span class="dictate-wrap"><button type="button" class="dictate-btn" data-dictate-for="${y}-${id}" aria-label="Start dictation" aria-pressed="false"><i data-lucide="mic" aria-hidden="true"></i><span>Speak</span></button><span class="dictate-glow" aria-hidden="true"></span></span>
     </div>
-    <textarea id="${y}-${id}" class="field" required></textarea>
     <span class="dictation-feedback t-help" role="status" aria-live="polite"></span>
   </section>`;
 
@@ -364,7 +364,7 @@ function setupDictation() {
       if (activeButton) stopDictation();             // another Speak button was on: switch it off first
 
       const textarea = document.getElementById(button.dataset.dictateFor);
-      const feedback = textarea.parentElement.querySelector(".dictation-feedback");
+      const feedback = textarea.closest(".dictate-box").parentElement.querySelector(".dictation-feedback");
       const mySession = ++session;
       let committed = textarea.value.trim();
       const write = extra => {
