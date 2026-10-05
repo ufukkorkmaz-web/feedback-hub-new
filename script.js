@@ -91,10 +91,25 @@ function renderYear(y, c) {
         </div>
         <p id="${y}-email-warn" class="email-warn" role="alert" hidden></p>
       </section>
+      <section id="${y}-hf" class="question-section hf-panel glass-panel rounded-[24px] p-5 sm:p-6">
+        <h2 class="t-title" style="font-size:20px;">Prefer to talk? Two ways to use your voice</h2>
+        <div class="hf-options mt-3">
+          <div class="hf-option">
+            <p class="hf-option-title"><i data-lucide="audio-lines" aria-hidden="true"></i> Hands-free</p>
+            <p class="t-help">Answer the whole form by voice. Say <b>“next question”</b> to move on, <b>“previous question”</b> to go back, give scores like <b>“overall four”</b>, and <b>“submit feedback”</b> to send.</p>
+            <button type="button" id="${y}-hf-toggle" class="hf-btn mt-3 inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-bold shadow-lg" style="${c.submitBtn}"><i data-lucide="audio-lines" aria-hidden="true"></i><span style="color:${c.submitTxt};">Start hands-free</span></button>
+          </div>
+          <div class="hf-option">
+            <p class="hf-option-title"><i data-lucide="mic" aria-hidden="true"></i> Speak buttons</p>
+            <p class="t-help">Prefer to stay in control? Press the <b>Speak</b> button in the corner of any answer box to dictate just that one, and press <b>Stop</b> when you are done. You can mix typing and speaking freely.</p>
+          </div>
+        </div>
+        <p id="${y}-hf-status" class="hf-status t-help" role="status" aria-live="polite" hidden></p>
+      </section>
       ${card(y, "worked", "thumbs-up", "What worked well?", c.workedHelp, c.workedQ)}
       ${card(y, "challenge", "frown", "What didn't work?", "Share the challenge, why it happened, and how you responded or improved it.", "What didn't work? Why? How did you handle the problem? *")}
       ${card(y, "plan", "lightbulb", "Shape the next plan", c.planHelp, c.planQ)}
-      <section class="question-section glass-panel rounded-[24px] p-5 sm:p-7">
+      <section id="${y}-pulse" class="question-section glass-panel rounded-[24px] p-5 sm:p-7">
         <div class="mb-6 flex gap-4"><div class="icon-bubble"><i data-lucide="bar-chart-3"></i></div>
           <div><h2 class="t-title" style="font-size:24px;">Quick pulse check</h2><p class="t-help mt-1">${c.pulseHelp}</p></div></div>
         <div class="grid gap-5 md:grid-cols-2">
@@ -113,7 +128,7 @@ function renderYear(y, c) {
         </div>
       </section>
       ${card(y, "notes", "sparkles", "One more thought", "Recommendations, ideas, and observations are always welcome.", "Any other notes or recommendations? *")}
-      <section class="question-section glass-panel rounded-[24px] p-5 sm:p-6">
+      <section id="${y}-final" class="question-section glass-panel rounded-[24px] p-5 sm:p-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p class="t-note">${c.note}</p>
           <button class="inline-flex items-center gap-2 rounded-2xl px-6 py-3 font-bold shadow-lg" type="submit" style="${c.submitBtn}"><i data-lucide="send"></i><span style="color:${c.submitTxt};">Submit feedback</span></button>
@@ -284,6 +299,7 @@ function setupDictation() {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) {
     buttons.forEach(b => { b.disabled = true; b.querySelector("span").textContent = "Unavailable"; });
+    document.querySelectorAll(".hf-panel").forEach(p => p.remove());      // hands-free needs voice input
     return;
   }
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -291,11 +307,16 @@ function setupDictation() {
   // Dictation switches itself off after a long silence (so the mic is never left open by accident)
   const SILENCE_AFTER_SPEECH_MS = 6000;   // quiet for this long after the last words: stop
   const SILENCE_AT_START_MS = 10000;      // nothing said at all after pressing Speak: stop
-  let silenceTimer = 0;
+  const HF_AFTER_SPEECH_MS = 20000;       // hands-free waits longer, people pause to think
+  const HF_AT_START_MS = 30000;
+  let silenceTimer = 0, recCounter = 0;
+  const hf = { on: false, y: null, idx: 0, switching: false, cmdRec: null, token: 0, done: new Set() };
   const clearSilence = () => { clearTimeout(silenceTimer); silenceTimer = 0; };
   const armSilence = ms => {
     clearSilence();
+    if (hf.on) ms = ms >= SILENCE_AT_START_MS ? HF_AT_START_MS : HF_AFTER_SPEECH_MS;
     silenceTimer = setTimeout(() => {
+      if (hf.on) { hfEnd("Hands-free paused after a long pause. Press Start to continue."); return; }
       if (!activeButton) return;
       const fb = activeFeedback;
       stopDictation();
@@ -342,6 +363,7 @@ function setupDictation() {
 
   function resetButton() {
     clearSilence(); stopMeter();
+    if (hf.on && !hf.switching) hfEnd("Hands-free stopped.");       // the person stopped dictation by hand
     if (!activeButton) return;
     if (activeFeedback && activeFeedback.textContent.startsWith("Listening")) activeFeedback.textContent = "";
     activeButton.classList.remove("is-listening");
@@ -384,6 +406,7 @@ function setupDictation() {
 
       const begin = () => {
         const rec = new Recognition();
+        const recId = ++recCounter;
         recognition = rec;
         rec.lang = "en-US";
         rec.continuous = !isMobile;
@@ -391,17 +414,28 @@ function setupDictation() {
         rec.onresult = event => {
           if (mySession !== session && activeTextarea === textarea) return;   // a newer session owns this box
           if (activeTextarea === textarea) armSilence(SILENCE_AFTER_SPEECH_MS);   // words are still coming in
+          const live = hf.on && activeTextarea === textarea;                       // hands-free: listen for spoken commands
+          let command = null;
           if (isMobile) {
             let added = false;
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (!event.results[i].isFinal) continue;
-              const piece = formatDictation([{ text: event.results[i][0].transcript, final: true }], startsSentence(committed));
+              let text = event.results[i][0].transcript;
+              if (live) { const x = pullCommand(text); text = x.text; command = command || x.cmd; }
+              const piece = formatDictation([{ text, final: true }], startsSentence(committed));
               if (piece) { committed = joinText(committed, piece); added = true; }
             }
             if (added) write("");
           } else {
-            write(formatDictation(Array.from(event.results).map(r => ({ text: r[0].transcript, final: r.isFinal })), startsSentence(committed)));
+            const segs = Array.from(event.results).map((r, i) => {
+              let text = r[0].transcript, cmd = null;
+              if (live) { const x = pullCommand(text); text = x.text; cmd = x.cmd; }
+              return { text, final: r.isFinal, cmd, key: recId + ":" + i };
+            });
+            write(formatDictation(segs, startsSentence(committed)));
+            segs.forEach(sg => { if (live && sg.final && sg.cmd && !hf.done.has(sg.key)) { hf.done.add(sg.key); command = command || sg.cmd; } });
           }
+          if (command && live) setTimeout(() => hfCommand(command), 60);
         };
         rec.onspeechstart = () => { if (activeTextarea === textarea) armSilence(SILENCE_AFTER_SPEECH_MS); };
         rec.onerror = event => {
@@ -414,7 +448,8 @@ function setupDictation() {
         };
         rec.onend = () => {
           if (recognition !== rec) return;
-          if (wantListening && isMobile && activeTextarea === textarea) {
+          if (wantListening && (isMobile || hf.on) && activeTextarea === textarea) {
+            committed = textarea.value.trim();                                    // keep what is already written
             try { begin(); return; } catch (err) {}
           }
           resetButton();
@@ -428,8 +463,167 @@ function setupDictation() {
   // Clicking any other button (Back, Submit, ...) also switches dictation off
   document.addEventListener("click", e => {
     const b = e.target.closest("button");
-    if (activeButton && b && b !== activeButton && !b.hasAttribute("data-dictate-for")) stopDictation();
+    if (!b || b.classList.contains("hf-btn")) return;
+    if (activeButton && b !== activeButton && !b.hasAttribute("data-dictate-for")) stopDictation();
+    else if (hf.on && !b.hasAttribute("data-dictate-for") && !b.closest(".hf-panel")) hfEnd("Hands-free stopped.");
   });
+
+  /* ============ HANDS-FREE: answer every question by voice ============ */
+  // Steps: 0 worked, 1 challenge, 2 plan, 3 scores, 4 notes, 5 ready to submit.
+  const HF_TEXT = ["worked", "challenge", "plan", null, "notes"];
+  const HF_TOTAL = 5;
+  const NUM = { one: 1, won: 1, "1": 1, two: 2, to: 2, too: 2, "2": 2, three: 3, "3": 3, four: 4, for: 4, fore: 4, "4": 4, five: 5, "5": 5 };
+  const SCORE_RE = /\b(overall|resources?|engagement|clarity|objectives?)(?:\s+(?:rating|score|is|to|as|of))*\s+(one|won|two|to|too|three|four|for|fore|five|[1-5])\b/gi;
+  const END_PUNCT = "[\\s.,!?]*$";
+  const CMD_RES = [
+    ["stop", new RegExp("(?:^|\\s)stop (?:hands[- ]?free|listening)" + END_PUNCT, "i")],
+    ["submit", new RegExp("(?:^|\\s)(?:submit|send) (?:the )?feedback" + END_PUNCT, "i")],
+    ["prev", new RegExp("(?:^|\\s)(?:go (?:to )?(?:the )?)?(?:previous|last) question" + END_PUNCT, "i")],
+    ["next", new RegExp("(?:^|\\s)(?:go (?:to )?(?:the )?)?next question" + END_PUNCT, "i")]
+  ];
+  // Splits a spoken command off the end of a phrase: "it went well next question" -> text "it went well", cmd "next"
+  function pullCommand(text) {
+    for (const [cmd, re] of CMD_RES) {
+      const m = re.exec(text);
+      if (m) return { text: text.slice(0, m.index).trim(), cmd };
+    }
+    return { text, cmd: null };
+  }
+
+  const hfEl = y => ({
+    btn: document.getElementById(y + "-hf-toggle"), status: document.getElementById(y + "-hf-status"),
+    panel: document.getElementById(y + "-hf")
+  });
+  const hfSection = (y, i) => document.getElementById(i === 3 ? y + "-pulse" : i === 5 ? y + "-final" : y + "-" + HF_TEXT[i]).closest(".question-section");
+  function hfLabel(y, i) {
+    if (i === 5) return "Ready to submit." + (document.getElementById(y + "-week").value.trim() ? "" : " Fill in the Week box at the top first.") + " Say “submit feedback” to send, or “previous question” to review.";
+    if (i === 3) return "Question 4 of 5: scores. Say “overall four”, “resources three”, “engagement five”, “clarity four”, then “next question”.";
+    const q = document.querySelector(`label[for="${y}-${HF_TEXT[i]}"]`);
+    const n = i < 3 ? i + 1 : 5;
+    return "Question " + n + " of " + HF_TOTAL + ": " + (q ? q.textContent.replace(/\s*\*\s*$/, "") : "") + " Say “next question” when you are done.";
+  }
+  function hfSay(y, msg, listening) {
+    const el = hfEl(y); if (!el.status) return;
+    el.status.hidden = !msg;
+    el.status.innerHTML = (listening ? '<span class="hf-dot" aria-hidden="true"></span>' : "");
+    el.status.appendChild(document.createTextNode(msg));
+    if (listening) {
+      const stop = document.createElement("button");
+      stop.type = "button"; stop.className = "hf-btn hf-stop"; stop.textContent = "Stop";
+      el.status.appendChild(stop);
+    }
+  }
+  function hfMark(y, i) {
+    document.querySelectorAll(".hf-active").forEach(n => n.classList.remove("hf-active"));
+    if (i === null) return;
+    const sec = hfSection(y, i);
+    sec.classList.add("hf-active");
+    try { sec.scrollIntoView({ behavior: "smooth", block: i === 5 ? "center" : "start" }); } catch (err) {}
+  }
+  function stopCmd() {
+    const rec = hf.cmdRec; hf.cmdRec = null;
+    if (rec) { try { rec.onend = null; rec.stop(); } catch (err) {} }
+  }
+
+  function hfStart(y) {
+    const gate = document.getElementById(y + "-email");
+    if (!document.getElementById(y + "-hf").classList.contains("revealed")) { gate.focus(); return; }
+    if (activeButton) stopDictation();
+    hf.on = true; hf.y = y;
+    const el = hfEl(y);
+    el.btn.querySelector("span").textContent = "Stop hands-free";
+    el.panel.classList.add("hf-running");
+    hfGo(0);
+  }
+  function hfEnd(msg) {
+    if (!hf.on) return;
+    const y = hf.y;
+    hf.on = false; hf.token++; clearSilence(); stopCmd();
+    hfMark(y, null);
+    const el = hfEl(y);
+    if (el.btn) { el.btn.querySelector("span").textContent = "Start hands-free"; el.panel.classList.remove("hf-running"); }
+    hfSay(y, msg || "", false);
+    if (activeButton) stopDictation();
+  }
+  function hfGo(i) {
+    if (!hf.on) return;
+    i = Math.max(0, Math.min(5, i));
+    const y = hf.y, tok = ++hf.token;
+    hf.idx = i;
+    hf.switching = true;
+    stopCmd();
+    if (activeButton) stopDictation();
+    hf.switching = false;
+    hfMark(y, i);
+    hfSay(y, hfLabel(y, i), true);
+    clearSilence(); armSilence(SILENCE_AT_START_MS);
+    setTimeout(() => {                                                   // a short breath so the microphone can switch over
+      if (!hf.on || hf.token !== tok) return;
+      if (i === 3 || i === 5) { hfListenCommands(i, tok); return; }
+      const btn = document.querySelector(`[data-dictate-for="${y}-${HF_TEXT[i]}"]`);
+      hf.switching = true; btn.click(); hf.switching = false;
+      if (activeFeedback) activeFeedback.textContent = "Listening… say “next question” when you are done.";
+    }, 280);
+  }
+  function hfCommand(cmd) {
+    if (!hf.on) return;
+    if (cmd === "next") { if (hf.idx < 5) hfGo(hf.idx + 1); }
+    else if (cmd === "prev") hfGo(hf.idx - 1);
+    else if (cmd === "stop") hfEnd("Hands-free stopped.");
+    else if (cmd === "submit") {
+      if (hf.idx !== 5) { hfSay(hf.y, "Finish the questions first, then say “submit feedback”.", true); return; }
+      const y = hf.y;
+      hfEnd("");
+      document.querySelector(`#${y}-form button[type="submit"]`).click();
+    }
+  }
+
+  // Scores and navigation (steps 3 and 5) have no text box, so they get their own small listener
+  function hfListenCommands(i, tok) {
+    const y = hf.y;
+    const rec = new Recognition();
+    hf.cmdRec = rec;
+    rec.lang = "en-US";
+    rec.continuous = !isMobile;
+    rec.interimResults = false;
+    rec.onresult = ev => {
+      if (!hf.on || hf.token !== tok) return;
+      armSilence(SILENCE_AFTER_SPEECH_MS);
+      for (let k = ev.resultIndex; k < ev.results.length; k++) {
+        if (!ev.results[k].isFinal) continue;
+        const heard = ev.results[k][0].transcript;
+        const set = [];
+        if (i === 3) {
+          let m; SCORE_RE.lastIndex = 0;
+          while ((m = SCORE_RE.exec(heard))) { const n = NUM[m[2].toLowerCase()]; if (n && hfScore(y, m[1].toLowerCase(), n)) set.push(m[1].toLowerCase() + " " + n); }
+          if (set.length) hfSay(y, "Set: " + set.join(", ") + ". " + hfLabel(y, 3), true);
+        }
+        const x = pullCommand(heard);
+        if (x.cmd) { setTimeout(() => hfCommand(x.cmd), 60); return; }
+        if (i === 5 && /submit|send/i.test(heard)) { hfSay(y, "Say exactly “submit feedback” to send.", true); }
+      }
+    };
+    rec.onerror = ev => {
+      if (ev.error === "not-allowed" || ev.error === "service-not-allowed") hfEnd("Microphone access was blocked.");
+    };
+    rec.onend = () => { if (hf.on && hf.cmdRec === rec && hf.token === tok) { try { rec.start(); } catch (err) {} } };
+    try { rec.start(); } catch (err) { hfEnd("Voice input is unavailable."); }
+  }
+  function hfScore(y, key, n) {
+    const id = /^overall/.test(key) ? "overall" : /^resource/.test(key) ? "resources" : /^engage/.test(key) ? "engagement" : "clarity";
+    const el = document.getElementById(`${y}-${id}`);
+    if (!el) return false;
+    el.value = String(n);
+    el.dispatchEvent(new Event(id === "clarity" ? "input" : "change", { bubbles: true }));
+    return true;
+  }
+
+  ["year6", "year7"].forEach(y => {
+    const el = hfEl(y);
+    if (el.btn) el.btn.addEventListener("click", () => { if (hf.on) hfEnd("Hands-free stopped."); else hfStart(y); });
+    if (el.status) el.status.addEventListener("click", e => { if (e.target.closest(".hf-stop")) hfEnd("Hands-free stopped."); });
+  });
+  // Leaving the form (Back to menu) also ends hands-free: handled by the "any other button" rule above.
 }
 
 /* ============ SPEAK BUTTON GLOW ============ */
