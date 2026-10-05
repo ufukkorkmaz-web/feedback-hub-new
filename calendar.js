@@ -34,10 +34,30 @@
   .cal-legend{display:flex;flex-wrap:wrap;gap:.25rem 1rem;margin-top:.5rem;font-size:12px;color:var(--t-help)}
   .cal-legend span{display:inline-flex;align-items:center;gap:.45rem}
   .cal-legend i{width:13px;height:13px;border-radius:5px;display:inline-block}
-  .cal-summary{margin:.4rem 0 0;font-size:13px;line-height:1.4;color:var(--t-intro)}
   .cal-tip{position:absolute;z-index:30;transform:translate(-50%,-100%);min-width:200px;max-width:270px;padding:.7rem .9rem;border-radius:14px;background:rgba(3,14,44,.96);border:1px solid var(--edge);color:#eef5ff;font-size:14px;line-height:1.5;pointer-events:none;box-shadow:0 12px 30px rgba(0,0,0,.35)}
   .cal-tip[hidden]{display:none}
   .cal-tip b{color:#9decE5}
+
+  /* --- Animations: days pop in one after another, months slide, today's ring pulses --- */
+  .cal-today{position:relative}
+  .cal-today::after{content:"";position:absolute;inset:-5px;border-radius:inherit;border:2px solid rgba(255,213,74,.85);pointer-events:none;opacity:0}
+  .page-ready .cal-grid .cal-cell[style]{animation:calPop .42s cubic-bezier(.2,.8,.2,1) calc(var(--d,0)*16ms + 60ms) backwards}
+  .page-ready .cal-today::after{animation:calPulse 2.4s ease-out 1s infinite}
+  .cal-grid.cal-out-l{animation:calOutL .13s ease-in forwards}
+  .cal-grid.cal-out-r{animation:calOutR .13s ease-in forwards}
+  .cal-grid.cal-in-l{animation:calInL .34s cubic-bezier(.2,.8,.2,1)}
+  .cal-grid.cal-in-r{animation:calInR .34s cubic-bezier(.2,.8,.2,1)}
+  .cal-head h2.cal-title-l{animation:calTitleL .34s cubic-bezier(.2,.8,.2,1)}
+  .cal-head h2.cal-title-r{animation:calTitleR .34s cubic-bezier(.2,.8,.2,1)}
+  @keyframes calPop{from{opacity:0;transform:scale(.55) translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes calPulse{0%{transform:scale(.92);opacity:.95}70%,100%{transform:scale(1.4);opacity:0}}
+  @keyframes calOutL{to{opacity:0;transform:translateX(-26px)}}
+  @keyframes calOutR{to{opacity:0;transform:translateX(26px)}}
+  @keyframes calInL{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+  @keyframes calInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+  @keyframes calTitleL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+  @keyframes calTitleR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.page-ready .cal-grid .cal-cell[style],.page-ready .cal-today::after,.cal-grid.cal-out-l,.cal-grid.cal-out-r,.cal-grid.cal-in-l,.cal-grid.cal-in-r,.cal-head h2{animation:none!important}.cal-today::after{display:none}}
   @media(min-width:1024px){#cal-grid{flex:1;min-height:0;grid-auto-rows:minmax(24px,1fr)}.cal-panel .cal-cell{aspect-ratio:auto;max-height:none}}
   @media(max-width:640px){.cal-cell{font-size:14px;border-radius:10px}.cal-grid{gap:4px}}`;
 
@@ -112,7 +132,11 @@
       tip.style.top = (btn.offsetTop - 8) + "px";
     }
 
-    function render() {
+    const title = wrap.querySelector("#cal-title");
+    const restart = (el, cls, all) => { el.classList.remove(...all); void el.offsetWidth; el.classList.add(cls); };
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function render(dir) {                      // dir: 1 = moved forward, -1 = moved back, undefined = first draw
       hide();
       const y = view.getFullYear(), m = view.getMonth();
       wrap.querySelector("#cal-title").textContent = fmt(view, { month: "long", year: "numeric" });
@@ -128,12 +152,29 @@
         if (isMonday && n === weekN) cls.push("cal-week");
         if (n === todayN) cls.push("cal-today");
         html += isMonday
-          ? `<button type="button" class="${cls.join(" ")}" data-date="${y}-${m + 1}-${d}">${d}</button>`
-          : `<span class="${cls.join(" ")}">${d}</span>`;
+          ? `<button type="button" class="${cls.join(" ")}" style="--d:${d}" data-date="${y}-${m + 1}-${d}">${d}</button>`
+          : `<span class="${cls.join(" ")}" style="--d:${d}">${d}</span>`;
       }
       // always draw 6 weeks so the calendar never changes height between months
       for (let i = offset + days; i < 42; i++) html += '<span class="cal-cell"></span>';
       grid.innerHTML = html;
+      if (dir && !reduce) {
+        restart(grid, dir > 0 ? "cal-in-l" : "cal-in-r", ["cal-in-l", "cal-in-r", "cal-out-l", "cal-out-r"]);
+        restart(title, dir > 0 ? "cal-title-l" : "cal-title-r", ["cal-title-l", "cal-title-r"]);
+      }
+    }
+
+    let busy = false;
+    function go(delta) {                        // slide the old month out, then the new one in
+      if (busy) return;
+      if (reduce) { view = new Date(view.getFullYear(), view.getMonth() + delta, 1); render(); return; }
+      busy = true; hide();
+      restart(grid, delta > 0 ? "cal-out-l" : "cal-out-r", ["cal-in-l", "cal-in-r", "cal-out-l", "cal-out-r"]);
+      setTimeout(() => {
+        view = new Date(view.getFullYear(), view.getMonth() + delta, 1);
+        render(delta);
+        busy = false;
+      }, 130);
     }
 
     grid.addEventListener("mouseover", e => { const b = e.target.closest(".cal-monday"); if (b) show(b); });
@@ -142,8 +183,8 @@
     grid.addEventListener("focusout", hide);
     grid.addEventListener("click", e => { const b = e.target.closest(".cal-monday"); if (b) show(b); });
     document.addEventListener("click", e => { if (!e.target.closest(".cal-monday")) hide(); });
-    wrap.querySelector("#cal-prev").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); });
-    wrap.querySelector("#cal-next").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); });
+    wrap.querySelector("#cal-prev").addEventListener("click", () => go(-1));
+    wrap.querySelector("#cal-next").addEventListener("click", () => go(1));
 
     /* ---------- "FEEDBACK THIS WEEK" BOX ---------- */
     // Shows the schools for the next Monday (today, if today is Monday).
