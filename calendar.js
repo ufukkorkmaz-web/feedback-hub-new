@@ -87,7 +87,6 @@
           <span><i style="background:linear-gradient(135deg,#52d9ca,#658ff1)"></i>This week's Monday</span>
           <span><i style="border:2px solid #ffd54a"></i>Today</span>
         </div>
-        <p class="cal-summary" id="cal-summary"></p>
         <div class="cal-tip" id="cal-tip" hidden></div>
       </div>`;
     const mount = document.getElementById("schedule");
@@ -137,55 +136,30 @@
       grid.innerHTML = html;
     }
 
-    const s = schools(thisMonday), label = fmt(thisMonday, { weekday: "short", day: "numeric", month: "short" });
-    wrap.querySelector("#cal-summary").innerHTML = s
-      ? `<strong>This week (${label}):</strong> Year 6 – ${s.y6.join(", ")} · Year 7 – ${s.y7.join(", ")}`
-      : `The schedule starts on ${fmt(new Date(sy, sm - 1, sd), { weekday: "short", day: "numeric", month: "short", year: "numeric" })}.`;
-
     grid.addEventListener("mouseover", e => { const b = e.target.closest(".cal-monday"); if (b) show(b); });
     grid.addEventListener("mouseout", e => { if (e.target.closest(".cal-monday")) hide(); });
     grid.addEventListener("focusin", e => { const b = e.target.closest(".cal-monday"); if (b) show(b); });
     grid.addEventListener("focusout", hide);
     grid.addEventListener("click", e => { const b = e.target.closest(".cal-monday"); if (b) show(b); });
     document.addEventListener("click", e => { if (!e.target.closest(".cal-monday")) hide(); });
-    const reduceMotion = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
-    const title = wrap.querySelector("#cal-title");
-    function swap(dir) {   // slide + fade the days when the month changes
-      if (reduceMotion || !grid.animate) return;
-      grid.animate([{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: "none" }], { duration: 300, easing: "cubic-bezier(.2,.8,.2,1)" });
-      title.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: "ease-out" });
-    }
-    wrap.querySelector("#cal-prev").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); swap(-1); });
-    wrap.querySelector("#cal-next").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); swap(1); });
+    wrap.querySelector("#cal-prev").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); });
+    wrap.querySelector("#cal-next").addEventListener("click", () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); });
 
     /* ---------- "FEEDBACK THIS WEEK" BOX ---------- */
     // Shows the schools for the next Monday (today, if today is Monday).
-    // From Tuesday on it switches to the following Monday, with a soft cross-fade if the page is left open.
+    // From Tuesday on it switches to the following Monday.
     const box = document.getElementById("feedback-week");
-    let boxKey = null;
-    function feedbackFor() {
-      const t = new Date();
-      let up = new Date(t.getFullYear(), t.getMonth(), t.getDate() + ((8 - t.getDay()) % 7));
+    if (box) {
+      let up = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((8 - now.getDay()) % 7));
       if (dn(up) < startN) up = new Date(sy, sm - 1, sd);   // before the rotation starts
       const u = schools(up);
-      if (!u) return null;
-      return { key: dn(up), html:
-        `<div class="fw-head"><span class="fw-title">Feedback this week</span><span class="fw-date">${fmt(up, { weekday: "short", day: "numeric", month: "short" })}</span></div>` +
-        `<div class="fw-row"><span class="fw-chip fw-chip-6">Year 6</span><span class="fw-schools">${u.y6.join(", ")}</span></div>` +
-        `<div class="fw-row"><span class="fw-chip fw-chip-7">Year 7</span><span class="fw-schools">${u.y7.join(", ")}</span></div>` };
+      if (u) {
+        box.innerHTML =
+          `<div class="fw-head"><span class="fw-title">Feedback this week</span><span class="fw-date">${fmt(up, { weekday: "short", day: "numeric", month: "short" })}</span></div>` +
+          `<div class="fw-row"><span class="fw-chip fw-chip-6">Year 6</span><span class="fw-schools">${u.y6.join(", ")}</span></div>` +
+          `<div class="fw-row"><span class="fw-chip fw-chip-7">Year 7</span><span class="fw-schools">${u.y7.join(", ")}</span></div>`;
+      }
     }
-    function showFeedback(first) {
-      if (!box) return;
-      const f = feedbackFor();
-      if (!f || f.key === boxKey) return;
-      boxKey = f.key;
-      if (first || reduceMotion || !box.animate) { box.innerHTML = f.html; return; }
-      const out = box.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: "forwards" });
-      out.onfinish = () => { out.cancel(); box.innerHTML = f.html; box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320 }); };
-    }
-    showFeedback(true);
-    setInterval(() => showFeedback(false), 60000);
-    document.addEventListener("visibilitychange", () => showFeedback(false));
     render();
   });
 })();
