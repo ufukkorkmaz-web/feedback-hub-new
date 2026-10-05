@@ -38,11 +38,8 @@
   .cal-tip[hidden]{display:none}
   .cal-tip b{color:#9decE5}
 
-  /* --- Animations: days pop in one after another, months slide, today's ring pulses --- */
-  .cal-today{position:relative}
-  .cal-today::after{content:"";position:absolute;inset:-5px;border-radius:inherit;border:2px solid rgba(255,213,74,.85);pointer-events:none;opacity:0}
+  /* --- Animations: days pop in one after another, months slide --- */
   .page-ready .cal-grid .cal-cell[style]{animation:calPop .42s cubic-bezier(.2,.8,.2,1) calc(var(--d,0)*16ms + 60ms) backwards}
-  .page-ready .cal-today::after{animation:calPulse 2.4s ease-out 1s infinite}
   .cal-grid.cal-out-l{animation:calOutL .13s ease-in forwards}
   .cal-grid.cal-out-r{animation:calOutR .13s ease-in forwards}
   .cal-grid.cal-in-l{animation:calInL .34s cubic-bezier(.2,.8,.2,1)}
@@ -50,14 +47,13 @@
   .cal-head h2.cal-title-l{animation:calTitleL .34s cubic-bezier(.2,.8,.2,1)}
   .cal-head h2.cal-title-r{animation:calTitleR .34s cubic-bezier(.2,.8,.2,1)}
   @keyframes calPop{from{opacity:0;transform:scale(.55) translateY(6px)}to{opacity:1;transform:none}}
-  @keyframes calPulse{0%{transform:scale(.92);opacity:.95}70%,100%{transform:scale(1.4);opacity:0}}
   @keyframes calOutL{to{opacity:0;transform:translateX(-26px)}}
   @keyframes calOutR{to{opacity:0;transform:translateX(26px)}}
   @keyframes calInL{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
   @keyframes calInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
   @keyframes calTitleL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
   @keyframes calTitleR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
-  @media(prefers-reduced-motion:reduce){.page-ready .cal-grid .cal-cell[style],.page-ready .cal-today::after,.cal-grid.cal-out-l,.cal-grid.cal-out-r,.cal-grid.cal-in-l,.cal-grid.cal-in-r,.cal-head h2{animation:none!important}.cal-today::after{display:none}}
+  @media(prefers-reduced-motion:reduce){.page-ready .cal-grid .cal-cell[style],.cal-grid.cal-out-l,.cal-grid.cal-out-r,.cal-grid.cal-in-l,.cal-grid.cal-in-r,.cal-head h2{animation:none!important}}
   @media(min-width:1024px){#cal-grid{flex:1;min-height:0;grid-auto-rows:minmax(24px,1fr)}.cal-panel .cal-cell{aspect-ratio:auto;max-height:none}}
   @media(max-width:640px){.cal-cell{font-size:14px;border-radius:10px}.cal-grid{gap:4px}}`;
 
