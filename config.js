@@ -53,6 +53,6 @@ window.IPT_CONFIG = {
     { q: "When are the online meetings?",
       a: "The Online meetings box lists the times. The Join Meeting button and the Next meeting banner shine from 15 minutes before a meeting until it ends." },
     { q: "Who receives my feedback?",
-      a: "It is sent by email to the IPT team together with the school email address you entered, so they can follow up if needed." }
+      a: "It is sent by email to the IPT lesson planner together with the school email address you entered, so they can follow up if needed." }
   ]
 };
