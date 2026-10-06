@@ -1,9 +1,11 @@
 /* ============ SETTINGS ============ */
 // Where submissions are sent (see README). Google Apps Script web-app URL or Formspree URL.
-const FORM_ENDPOINT = "https://formspree.io/f/xbglqzql";
+// (Both values below come from config.js. The text after || is only a safety net if that file is missing.)
+const CFG = window.IPT_CONFIG || {};
+const FORM_ENDPOINT = CFG.formEndpoint || "https://formspree.io/f/xbglqzql";
 
 // Only school emails from this domain can open the questions
-const ALLOWED_EMAIL_DOMAIN = "bilfen.k12.tr";
+const ALLOWED_EMAIL_DOMAIN = CFG.emailDomain || "bilfen.k12.tr";
 const EMAIL_WARNING = "Please enter with your Bilfen credentials. Your school email must end with @" + ALLOWED_EMAIL_DOMAIN + ".";
 const EMAIL_RE = new RegExp("^[^\\s@]+@" + ALLOWED_EMAIL_DOMAIN.replace(/\./g, "\\.") + "$", "i");
 
@@ -129,6 +131,7 @@ function renderYear(y, c) {
       <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <button id="back-${y}" type="button" class="mb-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 font-bold" style="${c.backBtn}"><i data-lucide="arrow-left" aria-hidden="true"></i><span>Back to menu</span></button>
+          <button type="button" class="help-open help-inline mb-4" aria-haspopup="dialog"><span class="help-q" aria-hidden="true">?</span><span>Help</span></button>
           <p class="t-kicker mb-2 uppercase">${c.kicker}</p>
           <h1 class="t-title" style="font-size:32px;">${c.title}</h1>
           <p class="t-intro mt-3 max-w-2xl">${c.intro}</p>
@@ -702,6 +705,71 @@ function setupDictation() {
   // Leaving the form (Back to menu) also ends hands-free: handled by the "any other button" rule above.
 }
 
+/* ============ HELP & FAQ WINDOW ============ */
+// The questions and answers come from config.js (faq). This short list is only a safety net.
+const DEFAULT_FAQ = [
+  { q: "How do I give my feedback?", a: "Choose Year 6 or Year 7, type your school email, answer the questions and press Submit feedback." },
+  { q: "Can I speak instead of typing?", a: "Yes. Press Speak in the corner of any answer box, or use Hands-free at the top of the questions." }
+];
+
+function setupHelp() {
+  const items = (Array.isArray(CFG.faq) && CFG.faq.length) ? CFG.faq : DEFAULT_FAQ;
+  let overlay = null, lastFocus = null, prevOverflow = "";
+
+  function close() {
+    if (!overlay) return;
+    const el = overlay; overlay = null;
+    document.removeEventListener("keydown", onKey, true);
+    document.body.style.overflow = prevOverflow;
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 260);
+    if (lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (err) {} }
+  }
+  function onKey(e) {
+    if (!overlay) return;
+    if (e.key === "Escape") { e.preventDefault(); close(); return; }
+    if (e.key === "Tab") {                                              // keep keyboard focus inside the window
+      const f = overlay.querySelectorAll("button, summary");
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  function open() {
+    if (overlay) return;
+    lastFocus = document.activeElement;
+    overlay = document.createElement("div");
+    overlay.className = "help-overlay";
+    const card = document.createElement("div");
+    card.className = "help-card"; card.setAttribute("role", "dialog"); card.setAttribute("aria-modal", "true"); card.setAttribute("aria-labelledby", "help-title");
+    const top = document.createElement("div"); top.className = "help-top";
+    const h = document.createElement("h2"); h.id = "help-title"; h.textContent = "Help & FAQ";
+    const x = document.createElement("button"); x.type = "button"; x.className = "help-close"; x.setAttribute("aria-label", "Close help"); x.textContent = "×";
+    top.append(h, x);
+    const list = document.createElement("div"); list.className = "help-list";
+    items.forEach(it => {
+      const d = document.createElement("details"); d.className = "help-item";
+      const s = document.createElement("summary"); s.textContent = it.q;
+      const a = document.createElement("p"); a.textContent = it.a;
+      d.append(s, a); list.appendChild(d);
+    });
+    // opening one question closes the others, so the window stays short
+    list.addEventListener("toggle", e => {
+      if (e.target.open) list.querySelectorAll("details[open]").forEach(o => { if (o !== e.target) o.open = false; });
+    }, true);
+    card.append(top, list); overlay.appendChild(card);
+    x.addEventListener("click", close);
+    overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+    prevOverflow = document.body.style.overflow; document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey, true);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (overlay) { overlay.classList.add("show"); x.focus({ preventScroll: true }); } }));
+  }
+
+  document.addEventListener("click", e => { if (e.target.closest && e.target.closest(".help-open")) open(); });
+}
+
 /* ============ SPEAK BUTTON GLOW ============ */
 // The glow only animates while it is on screen, which keeps phones smooth.
 function setupDictationGlow() {
@@ -828,6 +896,7 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (err) { console.error("Form setup failed:", err); }
 
   try { setupOutbox(); } catch (err) { console.error("Outbox setup failed:", err); }
+  try { setupHelp(); } catch (err) { console.error("Help setup failed:", err); }
   try { setupDictation(); } catch (err) { console.error("Dictation setup failed:", err); }
   try { setupDictationGlow(); } catch (err) { console.error("Dictation glow failed:", err); }
   try { lucide.createIcons(); } catch (err) { console.error("Icons failed:", err); }
