@@ -905,13 +905,20 @@ document.addEventListener("DOMContentLoaded", () => {
   try { setupDictationGlow(); } catch (err) { console.error("Dictation glow failed:", err); }
   try { lucide.createIcons(); } catch (err) { console.error("Icons failed:", err); }
 
+  // Mouse: the background circles ease slowly toward a spot opposite the pointer (no effect on touch screens)
   try {
-    const glow = document.getElementById("cursor-glow"); let frame = 0;
+    if (!window.matchMedia("(hover: hover)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const root = document.documentElement;
+    let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0;
+    const tick = () => {
+      cx += (tx - cx) * 0.06; cy += (ty - cy) * 0.06;
+      root.style.setProperty("--px", cx.toFixed(3)); root.style.setProperty("--py", cy.toFixed(3));
+      raf = (Math.abs(tx - cx) > 0.001 || Math.abs(ty - cy) > 0.001) ? requestAnimationFrame(tick) : 0;
+    };
     document.addEventListener("pointermove", e => {
       if (e.pointerType === "touch") return;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => { glow.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate3d(-50%, -50%, 0)`; glow.classList.add("visible"); });
+      tx = (e.clientX / window.innerWidth) * 2 - 1; ty = (e.clientY / window.innerHeight) * 2 - 1;
+      if (!raf) raf = requestAnimationFrame(tick);
     });
-    document.addEventListener("pointerout", e => { if (!e.relatedTarget) glow.classList.remove("visible"); });
-  } catch (err) { console.error("Glow failed:", err); }
+  } catch (err) { console.error("Mouse effect failed:", err); }
 });
