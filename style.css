@@ -28,8 +28,6 @@ button { transition:transform .16s ease,filter .16s ease,opacity .16s ease; curs
 button:hover { transform:translateY(-2px); filter:brightness(1.07); }
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible { outline:3px solid rgba(255,255,255,.82); outline-offset:3px; }
 button:disabled { cursor:wait; opacity:.65; transform:none; }
-.cursor-glow { position:fixed; left:0; top:0; z-index:20; width:280px; height:280px; border-radius:50%; pointer-events:none; opacity:0; transform:translate3d(-50%,-50%,0); background:radial-gradient(circle,rgba(121,235,221,.16) 0%,rgba(121,235,221,.07) 28%,rgba(121,235,221,0) 70%); filter:blur(10px); transition:opacity .35s ease; will-change:transform,opacity; }
-.cursor-glow.visible { opacity:1; }
 .menu-option { min-height:210px; position:relative; overflow:hidden; }
 .menu-option::after { content:""; position:absolute; width:160px; height:160px; border-radius:50%; right:-35px; bottom:-70px; background:rgba(255,255,255,.17); filter:blur(3px); }
 .year6-theme { --glass:rgba(232,252,255,.54); --edge:rgba(255,255,255,.76); --ink:#08355f; --muted:#2b6087; --aqua:#00a8df;
@@ -125,3 +123,8 @@ button:disabled { cursor:wait; opacity:.65; transform:none; }
 .help-item p{margin:0;padding:0 1rem .95rem;font-size:14.5px;line-height:1.6;color:#d6e4f7;animation:helpIn .28s ease}
 @keyframes helpIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.help-overlay,.help-card{transition:none}.help-card{transform:none}.help-item p{animation:none}}
+
+/* Mouse: the two soft background circles drift gently away from the pointer (desktop only) */
+.orb-one { translate:calc(var(--px,0) * -34px) calc(var(--py,0) * -26px); }
+.orb-two { translate:calc(var(--px,0) * 48px) calc(var(--py,0) * 36px); }
+@media (prefers-reduced-motion:reduce) { .orb-one,.orb-two { translate:none; } }
