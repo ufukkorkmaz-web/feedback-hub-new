@@ -861,23 +861,24 @@ function showThanks(y, returnTo) {
       <p class="t-kicker mb-2 uppercase" style="font-size:14px;">${c.kicker}</p>
       <h2 id="thanks-title" class="t-title" style="font-size:28px;line-height:1.2;">Thank you for your feedback</h2>
       <p id="thanks-text" class="t-intro mt-3" style="font-size:16px;">Your ${c.label} reflections have been saved. They help us improve together.</p>
-      <button type="button" class="thanks-close mt-6 inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3 font-bold shadow-lg" style="${c.submitBtn}"><span style="color:${c.submitTxt};">Close</span></button>
+      <button type="button" class="thanks-close mt-6 inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3 font-bold shadow-lg" style="${c.submitBtn}"><span style="color:${c.submitTxt};">Back to main page</span></button>
     </div>`;
   const closeBtn = overlay.querySelector(".thanks-close");
   let closed = false;
-  const close = () => {
+  const close = (goHome) => {
     if (closed) return; closed = true;
+    if (goHome === true) showView("menu-view");               // the button takes the teacher back to the main page
     document.removeEventListener("keydown", onKey, true);
     overlay.classList.remove("show");                        // box and blur fade away together
     setTimeout(() => overlay.remove(), 320);
-    if (returnTo && returnTo.focus) { try { returnTo.focus({ preventScroll: true }); } catch (err) {} }
+    if (goHome !== true && returnTo && returnTo.focus) { try { returnTo.focus({ preventScroll: true }); } catch (err) {} }
   };
   const onKey = e => {
-    if (e.key === "Escape") { e.preventDefault(); close(); }
+    if (e.key === "Escape") { e.preventDefault(); close(false); }
     else if (e.key === "Tab") { e.preventDefault(); closeBtn.focus(); }   // only one control: keep focus inside the box
   };
-  closeBtn.addEventListener("click", close);
-  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+  closeBtn.addEventListener("click", () => close(true));
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(false); });
   document.addEventListener("keydown", onKey, true);
   document.body.appendChild(overlay);
   requestAnimationFrame(() => requestAnimationFrame(() => { overlay.classList.add("show"); closeBtn.focus({ preventScroll: true }); }));
