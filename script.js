@@ -131,7 +131,6 @@ function renderYear(y, c) {
       <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <button id="back-${y}" type="button" class="mb-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 font-bold" style="${c.backBtn}"><i data-lucide="arrow-left" aria-hidden="true"></i><span>Back to menu</span></button>
-          <button type="button" class="help-open help-inline mb-4" aria-haspopup="dialog"><span class="help-q" aria-hidden="true">?</span><span>Help</span></button>
           <p class="t-kicker mb-2 uppercase">${c.kicker}</p>
           <h1 class="t-title" style="font-size:32px;">${c.title}</h1>
           <p class="t-intro mt-3 max-w-2xl">${c.intro}</p>
@@ -767,6 +766,11 @@ function setupHelp() {
     requestAnimationFrame(() => requestAnimationFrame(() => { if (overlay) { overlay.classList.add("show"); x.focus({ preventScroll: true }); } }));
   }
 
+  // One floating Help button, always in the bottom-right corner, on every page
+  const fab = document.createElement("button");
+  fab.type = "button"; fab.className = "help-open help-fab"; fab.setAttribute("aria-haspopup", "dialog");
+  fab.innerHTML = '<span class="help-q" aria-hidden="true">?</span><span>Help</span>';
+  document.body.appendChild(fab);
   document.addEventListener("click", e => { if (e.target.closest && e.target.closest(".help-open")) open(); });
 }
 
