@@ -205,7 +205,8 @@
 
   <main id="menu-view" class="view active w-full px-4 py-6 sm:px-7">
     <div class="menu-layout mx-auto max-w-6xl">
-      <div class="glass-panel menu-hub rise rounded-[28px] px-6 py-5 text-center" style="background:transparent;--i:0;">
+      <div class="glass-panel menu-hub rise rounded-[28px] px-6 py-5 text-center" style="background:transparent;--i:0;position:relative;">
+          <button type="button" class="help-open help-hub" aria-haspopup="dialog"><span class="help-q" aria-hidden="true">?</span><span>Help</span></button>
           <img class="mx-auto mb-3 h-24 w-24 object-contain" src="assets/logo-menu.png" alt="IPT logo">
           <p class="mb-2 font-bold uppercase" style="color:#9decE5;font-size:22px;letter-spacing:.12rem;">Teacher reflection hub</p>
           <h1 class="font-semibold" style="color:#f4f9ff;font-weight:700;font-size:30px;">IPT Feedback</h1>
@@ -254,6 +255,7 @@
   <div id="year6-view" class="view year6-theme"></div>
   <div id="year7-view" class="view"></div>
 
+  <script src="config.js"></script>
   <script src="script.js"></script>
   <script src="calendar.js"></script>
   <script id="meeting-status">
@@ -261,8 +263,23 @@
     (function () {
       const card = document.querySelector(".meet-card");
       if (!card) return;
-      const TZ = "Europe/Istanbul";                       // meeting times are read in this time zone
+      const CFG = window.IPT_CONFIG || {};                 // meeting times, link and time zone come from config.js
+      const TZ = CFG.timezone || "Europe/Istanbul";       // meeting times are read in this time zone
       const banner = card.querySelector(".meet-banner"), btn = card.querySelector(".meet-btn");
+      if (CFG.meetingLink) btn.setAttribute("href", CFG.meetingLink);
+      if (Array.isArray(CFG.meetings) && CFG.meetings.length) {
+        const FULL = { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" };
+        const list = card.querySelector(".meet-list");
+        list.textContent = "";
+        CFG.meetings.forEach(m => {
+          const li = document.createElement("li");
+          li.className = "meet-row"; li.dataset.day = m.day; li.dataset.start = m.start; li.dataset.end = m.end;
+          const chip = document.createElement("span"); chip.className = "meet-chip meet-chip-" + (Number(m.year) === 6 ? 6 : 7); chip.textContent = "Year " + (Number(m.year) === 6 ? 6 : 7);
+          const day = document.createElement("span"); day.className = "meet-day"; day.textContent = FULL[m.day] || m.day;
+          const time = document.createElement("span"); time.className = "meet-time"; time.textContent = m.start + " – " + m.end;
+          li.append(chip, day, time); list.appendChild(li);
+        });
+      }
       const labelEl = banner.querySelector(".meet-banner-label"), mainEl = banner.querySelector(".meet-banner-main");
       const SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       const LONG = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
